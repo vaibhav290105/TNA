@@ -126,7 +126,7 @@ router.patch('/manager-review/:id', auth, async (req, res) => {
 
 
 
-// Get requests that manager already approved
+
 router.get('/admin-review', auth, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).send('Forbidden');
 
@@ -138,7 +138,7 @@ router.get('/admin-review', auth, async (req, res) => {
   res.json(requests);
 });
 
-// Admin approves or rejects
+
 router.patch('/admin-review/:id', auth, async (req, res) => {
   const { decision } = req.body;
   if (req.user.role !== 'admin') return res.status(403).send('Forbidden');
