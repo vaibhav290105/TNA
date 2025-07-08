@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const router = express.Router();
 const auth = require('../middleware/authMiddleware');
-
+const crypto = require('crypto');
 
 router.post('/register', async (req, res) => {
   const { name, email, password, role, department, location } = req.body;
@@ -41,16 +41,151 @@ router.post('/login', async (req, res) => {
 });
 
 router.get('/users', auth, async (req, res) => {
-  if (req.user.role !== 'admin') return res.status(403).send('Forbidden');
-  const users = await User.find({}, 'name email role department');
-  res.json(users);
+  try {
+    const currentUser = await User.findById(req.user._id);
+
+    if (!currentUser) return res.status(401).json({ msg: 'User not found' });
+
+    let filter = {};
+
+    if (currentUser.role === 'admin') {
+      // Admins can view all users
+      filter = {};
+    } else if (currentUser.role === 'hod') {
+      // HODs can view users in their department
+      filter = {
+        department: currentUser.department,
+        role: { $in: ['employee', 'manager'] },
+        _id: { $ne: currentUser._id }, // exclude self
+      };
+    } else {
+      return res.status(403).json({ msg: 'Forbidden' });
+    }
+
+    const users = await User.find(filter)
+  .select('name email role department managers')
+  .populate('managers', 'name email department');
+    res.json(users);
+  } catch (err) {
+    console.error('Error fetching users:', err);
+    res.status(500).json({ msg: 'Server error' });
+  }
 });
 
 
 router.get('/me', auth, async (req, res) => {
-  const user = await User.findById(req.user._id).select('-password');
-  res.json(user);
+  try {
+    const user = await User.findById(req.user._id)
+      .populate('managers', 'name email'); 
+
+    let mappedEmployees = [];
+
+    if (user.role === 'manager') {
+      mappedEmployees = await User.find({ managers: user._id }, 'name department email');
+    }
+
+    res.json({ ...user.toObject(), mappedEmployees });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch profile' });
+  }
 });
+
+
+
+
+router.patch('/users/:id/assign-managers', auth, async (req, res) => {
+  if (!['admin', 'hod'].includes(req.user.role)) {
+    return res.status(403).send('Forbidden');
+  }
+
+  const { managerId } = req.body;
+
+  try {
+    const employee = await User.findById(req.params.id);
+    if (!employee.managers.includes(managerId)) {
+      employee.managers.push(managerId);
+      await employee.save();
+    }
+    res.json({ msg: 'Manager assigned successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Error assigning manager');
+  }
+});
+
+
+// Unmap employee from manager
+router.patch('/users/:id/unassign-managers', auth, async (req, res) => {
+  if (!['admin', 'hod'].includes(req.user.role)) return res.status(403).send('Forbidden');
+
+  const { managerId } = req.body;
+
+  try {
+    const employee = await User.findById(req.params.id);
+    employee.managers = employee.managers.filter(m => m.toString() !== managerId);
+    await employee.save();
+    res.json({ msg: 'Manager unassigned successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Error unassigning manager');
+  }
+});
+
+
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  const user = await User.findOne({ email });
+  if (!user) return res.status(400).json({ msg: 'Email not registered' });
+
+  const token = crypto.randomBytes(32).toString('hex');
+  user.resetToken = token;
+  user.resetTokenExpiry = Date.now() + 3600000; // 1 hour
+  await user.save();
+
+  // Send token via email here (e.g., nodemailer)
+  res.json({ msg: 'Password reset link sent to email' });
+});
+
+router.post('/reset-password/:token', async (req, res) => {
+  const { password } = req.body;
+  const user = await User.findOne({
+    resetToken: req.params.token,
+    resetTokenExpiry: { $gt: Date.now() }
+  });
+  if (!user) return res.status(400).json({ msg: 'Invalid or expired token' });
+
+  user.password = await bcrypt.hash(password, 10);
+  user.resetToken = undefined;
+  user.resetTokenExpiry = undefined;
+  await user.save();
+
+  res.json({ msg: 'Password reset successful' });
+});
+
+
+// Get employees assigned to a particular manager (used by HOD/Admin)
+router.get('/users/manager/:managerId', auth, async (req, res) => {
+  try {
+    const managerId = req.params.managerId;
+
+    if (!['admin', 'hod'].includes(req.user.role)) {
+      return res.status(403).json({ msg: 'Forbidden' });
+    }
+
+    // ✅ Correct field name for array
+    const employees = await User.find({ managers: managerId })
+      .select('name email department location');
+
+    res.json(employees);
+  } catch (err) {
+    console.error('Error fetching mapped employees:', err);
+    res.status(500).json({ msg: 'Server error' });
+  }
+});
+
+
+
 
 
 module.exports = router;

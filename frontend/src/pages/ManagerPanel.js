@@ -6,6 +6,8 @@ export default function ManagerPanel() {
   const [tab, setTab] = useState('review');
   const [requests, setRequests] = useState([]);
   const [selectedRequest, setSelectedRequest] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [mappedEmployees, setMappedEmployees] = useState([]);
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -22,11 +24,24 @@ export default function ManagerPanel() {
         const res = await API.get(endpoint);
         setRequests(res.data);
       } catch {
-        alert('Failed to fetch data');
+        alert('Failed to fetch requests');
       }
     };
     fetchRequests();
   }, [tab]);
+
+  useEffect(() => {
+    const fetchManagerInfo = async () => {
+      try {
+        const res = await API.get('/auth/me');
+        setCurrentUser(res.data);
+        setMappedEmployees(res.data.mappedEmployees || []);
+      } catch {
+        alert('Failed to load manager info');
+      }
+    };
+    fetchManagerInfo();
+  }, []);
 
   const handleDecision = async (id, decision) => {
     try {
@@ -42,21 +57,26 @@ export default function ManagerPanel() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-gray-800 text-white px-6 py-4 flex justify-between items-center shadow-md">
-        <h1 className="text-xl font-bold">Manager Dashboard</h1>
+        <div>
+          <h1 className="text-xl font-bold">Manager Dashboard</h1>
+          {currentUser && (
+            <p className="text-sm text-gray-300">Welcome, {currentUser.name}</p>
+          )}
+        </div>
         <button
           onClick={handleLogout}
-          className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded font-medium transition"
+          className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded font-medium"
         >
           Logout
         </button>
       </header>
 
-      {/* Controls */}
       <div className="max-w-7xl mx-auto p-6">
-        <div className="flex justify-center gap-4 mb-8">
+        {/* Tabs */}
+        <div className="flex justify-center gap-4 mb-6">
           <button
             onClick={() => setTab('review')}
-            className={`px-6 py-2 rounded-md text-white font-medium transition ${
+            className={`px-6 py-2 rounded-md text-white font-medium ${
               tab === 'review' ? 'bg-blue-600 shadow' : 'bg-gray-400 hover:bg-gray-500'
             }`}
           >
@@ -70,7 +90,7 @@ export default function ManagerPanel() {
           </button>
           <button
             onClick={() => setTab('submitted')}
-            className={`px-6 py-2 rounded-md text-white font-medium transition ${
+            className={`px-6 py-2 rounded-md text-white font-medium ${
               tab === 'submitted' ? 'bg-blue-600 shadow' : 'bg-gray-400 hover:bg-gray-500'
             }`}
           >
@@ -78,7 +98,21 @@ export default function ManagerPanel() {
           </button>
         </div>
 
-        {/* Requests List */}
+        {/* Mapped Employees */}
+        <div className="mb-10 bg-white shadow p-4 rounded-lg">
+          <h2 className="text-lg font-semibold mb-2">👥 Employees Mapped to You</h2>
+          {mappedEmployees.length === 0 ? (
+            <p className="text-gray-500 italic">No employees mapped yet.</p>
+          ) : (
+            <ul className="list-disc pl-6 text-gray-800">
+              {mappedEmployees.map((emp) => (
+                <li key={emp._id}>{emp.name} ({emp.department})</li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Requests */}
         {requests.length === 0 ? (
           <p className="text-center text-gray-500 italic">No training requests found.</p>
         ) : (
@@ -89,9 +123,10 @@ export default function ManagerPanel() {
                 className="bg-white shadow-lg rounded-xl border p-6 flex flex-col justify-between"
               >
                 <div>
-                  <p className="mb-1"><strong>Name:</strong> {req.user?.name || 'You'}</p>
-                  <p className="mb-1"><strong>Department:</strong> {req.user?.department}</p>
-                  <p className="mb-3"><strong>Status:</strong> 
+                  <p><strong>Name:</strong> {req.user?.name || 'You'}</p>
+                  <p><strong>Department:</strong> {req.user?.department}</p>
+                  <p><strong>Submitted On:</strong> {new Date(req.createdAt).toLocaleDateString()}</p>
+                  <p className="mb-3"><strong>Status:</strong>
                     <span className="ml-2 inline-block px-2 py-1 text-sm rounded bg-blue-100 text-blue-700">
                       {req.status}
                     </span>
@@ -137,8 +172,9 @@ export default function ManagerPanel() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-700">
               <p><strong>Employee:</strong> {selectedRequest.user?.name || 'You'}</p>
               <p><strong>Department:</strong> {selectedRequest.user?.department}</p>
-              <p><strong>Status:</strong> {selectedRequest.status}</p>
               <p><strong>Location:</strong> {selectedRequest.user?.location}</p>
+              <p><strong>Status:</strong> {selectedRequest.status}</p>
+              <p><strong>Submitted On:</strong> {new Date(selectedRequest.createdAt).toLocaleDateString()}</p>
               <p><strong>General Skills:</strong> {selectedRequest.generalSkills}</p>
               <p><strong>Tools Training:</strong> {selectedRequest.toolsTraining}</p>
               <p><strong>Soft Skills:</strong> {selectedRequest.softSkills}</p>
@@ -157,7 +193,7 @@ export default function ManagerPanel() {
               <p><strong>Area Needed:</strong> {selectedRequest.areaNeed}</p>
               <p><strong>Frequency:</strong> {selectedRequest.trainingFrequency}</p>
             </div>
-            <div className="text-right mt-6 space-x-4">
+            <div className="text-right mt-6">
               <button
                 onClick={() => setSelectedRequest(null)}
                 className="bg-gray-300 hover:bg-gray-400 text-black px-4 py-2 rounded"

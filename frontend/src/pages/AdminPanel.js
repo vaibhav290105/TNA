@@ -12,19 +12,25 @@ export default function AdminPanel() {
   const [success, setSuccess] = useState('');
   const [trainingRequests, setTrainingRequests] = useState([]);
   const [selectedRequest, setSelectedRequest] = useState(null);
+  const [selectedManager, setSelectedManager] = useState('');
+  const [managerMapDept, setManagerMapDept] = useState('');
+  const [mappedEmployees, setMappedEmployees] = useState([]);
 
   const navigate = useNavigate();
 
+  const fetchUsers = () => {
+    API.get('/auth/users')
+      .then((res) => {
+        const nonAdmins = res.data.filter((user) => user.role !== 'admin');
+        setUsers(nonAdmins);
+        console.log('Fetched users:', nonAdmins);
+      })
+      .catch(() => alert('Failed to fetch users'));
+  };
+
   useEffect(() => {
-    if (activeTab === 'survey') {
-      API.get('/auth/users')
-        .then((res) => {
-          const nonAdmins = res.data.filter((user) => user.role !== 'admin');
-          setUsers(nonAdmins);
-        })
-        .catch(() => alert('Failed to fetch users'));
-    }
-  }, [activeTab]);
+    fetchUsers();
+  }, []);
 
   useEffect(() => {
     if (activeTab === 'survey') {
@@ -33,6 +39,15 @@ export default function AdminPanel() {
         .catch(() => console.error('Failed to load created surveys'));
     }
   }, [success, activeTab]);
+
+  const fetchMappedEmployees = async (managerId) => {
+    try {
+      const res = await API.get(`/auth/users/manager/${managerId}`);
+      setMappedEmployees(res.data);
+    } catch (err) {
+      console.error('Failed to fetch mapped employees:', err);
+    }
+};
 
   useEffect(() => {
     if (activeTab === 'training') {
@@ -108,116 +123,222 @@ export default function AdminPanel() {
     }
   };
 
+
   const logout = () => {
     localStorage.clear();
     navigate('/');
   };
 
+  const handleUnmap = async (employeeId) => {
+  try {
+    await API.patch(`/auth/users/${employeeId}/unassign-manager`);
+    alert('Unmapped successfully');
+    await fetchUsers(); // optional, in case your UI depends on this too
+    await fetchMappedEmployees(selectedManager); // ✅ refresh the right panel
+  } catch (err) {
+    alert('Failed to unmap');
+  }
+};
+
+
+
+
+  const handleMap = async (employeeId) => {
+    if (!selectedManager) {
+      alert('Please select a manager first.');
+      return;
+    }
+
+    try {
+      const res = await API.patch(`/auth/users/${employeeId}/assign-manager`, {
+        managerId: selectedManager,
+      });
+      alert('Mapped successfully');
+      await fetchUsers(); // 🔄 Update users list
+      await fetchMappedEmployees(selectedManager); // 🔄 Refresh mapped list instantly
+    } catch (err) {
+      alert('Failed to map');
+    }
+};
+
+
+  
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-gray-800 text-white px-6 py-4 flex justify-between items-center shadow-md">
         <h1 className="text-xl font-bold">Admin Dashboard</h1>
-        <button
-          onClick={logout}
-          className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded font-medium"
-        >
+        <button onClick={logout} className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded font-medium">
           Logout
         </button>
       </header>
 
-      {/* Tabs */}
-        <div className="max-w-6xl mx-auto p-6">
-          <div className="flex justify-center mb-8 gap-6">
-            <button
-              onClick={() => setActiveTab('survey')}
-              className={`px-5 py-2 rounded text-white ${
-                activeTab === 'survey' ? 'bg-blue-600' : 'bg-gray-400'
-              }`}
-            >
-              📋 Feedback Form Management
-            </button>
-            <button
-              onClick={() => setActiveTab('training')}
-              className={`px-5 py-2 rounded text-white ${
-                activeTab === 'training' ? 'bg-green-600' : 'bg-gray-400'
-              }`}
-            >
-              📝 View Training Requests
-            </button>
-          </div>
+      <div className="max-w-6xl mx-auto p-6">
+        <div className="flex justify-center mb-8 gap-6">
+          <button
+            onClick={() => setActiveTab('survey')}
+            className={`px-5 py-2 rounded text-white ${activeTab === 'survey' ? 'bg-blue-600' : 'bg-gray-400'}`}
+          >
+            📋 Feedback Form Management
+          </button>
+          <button
+            onClick={() => setActiveTab('training')}
+            className={`px-5 py-2 rounded text-white ${activeTab === 'training' ? 'bg-green-600' : 'bg-gray-400'}`}
+          >
+            📝 View Training Requests
+          </button>
+          <button
+            onClick={() => setActiveTab('mapping')}
+            className={`px-5 py-2 rounded text-white ${activeTab === 'mapping' ? 'bg-purple-600' : 'bg-gray-400'}`}
+          >
+            👥 Map Managers & Employees
+          </button>
+        </div>
 
-          {/* Survey Tab */}
-          {activeTab === 'survey' && (
-            <>
-              {success && (
-                <div className="bg-green-100 text-green-700 px-4 py-2 rounded mb-4 text-center">
-                  {success}
-                </div>
-              )}
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Form Title"
-                className="w-full border p-2 mb-4 rounded"
-              />
-              {questions.map((q, i) => (
-                <input
-                  key={i}
-                  value={q}
-                  onChange={(e) => updateQuestion(i, e.target.value)}
-                  placeholder={`Question ${i + 1}`}
-                  className="w-full border p-2 mb-2 rounded"
-                />
+        {/* Mapping Tab */}
+        {activeTab === 'mapping' && (
+          <>
+            <h2 className="text-2xl font-semibold mb-4">👥 Map Employees to Managers</h2>
+            <select onChange={(e) => setManagerMapDept(e.target.value)} className="border rounded p-2 mb-4">
+              <option value="">Select Department</option>
+              {[...new Set(users.map(u => u.department))].map(dep => (
+                <option key={dep} value={dep}>{dep}</option>
               ))}
-              <button onClick={addQuestion} className="bg-gray-200 px-3 py-1 rounded mr-3 mb-4">
-                + Add Question
-              </button>
+            </select>
 
-              <h3 className="text-lg font-semibold mb-2">Assign to Users by Role & Department:</h3>
-              <div className="max-h-40 overflow-y-auto border p-2 mb-6 rounded">
-                {users.map((user) => (
-                  <label key={user._id} className="block mb-1">
-                    <input
-                      type="checkbox"
-                      checked={selectedUsers.includes(user._id)}
-                      onChange={() => toggleUser(user._id)}
-                      className="mr-2"
-                    />
-                    {user.name} — {user.role} ({user.department})
-                  </label>
-                ))}
-              </div>
-
-              <button
-                onClick={createSurvey}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded"
-              >
-                ✅ Create Feedback Form
-              </button>
-
-              <hr className="my-8" />
-              <h2 className="text-2xl font-semibold mb-4">📄 Created Feedback Forms</h2>
-              <ul className="space-y-3">
-                {surveys.map((survey) => (
-                  <li key={survey._id} className="border p-3 rounded flex justify-between items-center bg-white">
-                    <div>
-                      <div className="text-lg font-medium text-gray-800">{survey.title}</div>
-                      <div className="text-sm text-gray-600">
-                        Assigned: {survey.assignedTo?.length || 0} | Responses: {survey.responseCount || 0}
-                      </div>
+            {managerMapDept && (
+              <div className="grid grid-cols-3 gap-4">
+                {/* Managers */}
+                <div className="border rounded p-3 bg-white">
+                  <h3 className="text-lg font-semibold mb-2 text-center">Managers</h3>
+                  {users.filter(u => u.department === managerMapDept && u.role === 'manager').map(manager => (
+                    <div key={manager._id} className="flex justify-between items-center py-1">
+                      <span>{manager.name}</span>
+                      <button
+                        className="bg-blue-500 text-white px-2 py-1 text-xs rounded"
+                        onClick={() => {
+                          setSelectedManager(manager._id);
+                          fetchMappedEmployees(manager._id); 
+                        }}
+                      >
+                        Select
+                      </button>
                     </div>
-                    <Link to={`/survey/${survey._id}/responses`} className="text-sm text-blue-600 hover:underline">
-                      View Responses
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
+                  ))}
+                </div>
 
-          {/* Training Tab */}
-          {activeTab === 'training' && (
+                {/* Employees */}
+                <div className="border rounded p-3 bg-white">
+                  <h3 className="text-lg font-semibold mb-2 text-center">Employees</h3>
+                  {users.filter(u => u.department === managerMapDept && u.role === 'employee').map(employee => (
+                    <div key={employee._id} className="flex justify-between items-center py-1">
+                      <span>{employee.name}</span>
+                      <button
+                        className="bg-green-500 text-white px-2 py-1 text-xs rounded"
+                        onClick={() => handleMap(employee._id)}
+                      >
+                        Map
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Mapped Employees */}
+                <div className="border rounded p-3 bg-white">
+                  <h3 className="text-xl font-bold mb-4 text-center">
+                    {selectedManager?.name ? `Mapped to ${selectedManager.name}` : 'Mapped to Selected Manager'}
+                  </h3>
+                  {!selectedManager ? (
+                    <p className="text-center text-gray-500 italic">Select a manager to view mappings.</p>
+                  ) : mappedEmployees.length === 0 ? (
+                    <p className="text-center text-gray-500 italic">No employees mapped yet.</p>
+                  ) : (
+                    mappedEmployees.map(emp => (
+                      <div key={emp._id} className="flex justify-between items-center py-1">
+                        <span>{emp.name}</span>
+                        <button
+                          className="bg-red-500 text-white px-2 py-1 text-xs rounded"
+                          onClick={() => handleUnmap(emp._id)}
+                        >
+                          Unmap
+                        </button>
+                      </div>
+                    ))
+                  )}
+
+                </div>
+              </div>
+            )}
+          </>
+        )}
+        {activeTab === 'survey' && (
+          <>
+            {success && (
+              <div className="bg-green-100 text-green-700 px-4 py-2 rounded mb-4 text-center">{success}</div>
+            )}
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Form Title"
+              className="w-full border p-2 mb-4 rounded"
+            />
+            {questions.map((q, i) => (
+              <input
+                key={i}
+                value={q}
+                onChange={(e) => updateQuestion(i, e.target.value)}
+                placeholder={`Question ${i + 1}`}
+                className="w-full border p-2 mb-2 rounded"
+              />
+            ))}
+            <button onClick={addQuestion} className="bg-gray-200 px-3 py-1 rounded mr-3 mb-4">
+              + Add Question
+            </button>
+
+            <h3 className="text-lg font-semibold mb-2">Assign to Users by Role & Department:</h3>
+            <div className="max-h-40 overflow-y-auto border p-2 mb-6 rounded">
+              {users.map((user) => (
+                <label key={user._id} className="block mb-1">
+                  <input
+                    type="checkbox"
+                    checked={selectedUsers.includes(user._id)}
+                    onChange={() => toggleUser(user._id)}
+                    className="mr-2"
+                  />
+                  {user.name} — {user.role} ({user.department})
+                </label>
+              ))}
+            </div>
+
+            <button
+              onClick={createSurvey}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded"
+            >
+              ✅ Create Feedback Form
+            </button>
+
+            <hr className="my-8" />
+            <h2 className="text-2xl font-semibold mb-4">📄 Created Feedback Forms</h2>
+            <ul className="space-y-3">
+              {surveys.map((survey) => (
+                <li key={survey._id} className="border p-3 rounded flex justify-between items-center bg-white">
+                  <div>
+                    <div className="text-lg font-medium text-gray-800">{survey.title}</div>
+                    <div className="text-sm text-gray-600">
+                      Assigned: {survey.assignedTo?.length || 0} | Responses: {survey.responseCount || 0}
+                    </div>
+                  </div>
+                  <Link to={`/survey/${survey._id}/responses`} className="text-sm text-blue-600 hover:underline">
+                    View Responses
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+
+        {/* Training Tab */}
+        {activeTab === 'training' && (
           <>
             <h2 className="text-3xl font-bold text-gray-800 mb-6 flex items-center gap-2">
               📋 Employee Training Requests
@@ -277,16 +398,13 @@ export default function AdminPanel() {
               </div>
             )}
           </>
-      )}
+        )}
+        
       </div>
-
-      {/* Modal for Request Details */}
       {selectedRequest && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
           <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-2xl font-bold mb-4 text-center text-gray-800">
-              📝 Training Request Details
-            </h3>
+            <h3 className="text-2xl font-bold mb-4 text-center text-gray-800">📝 Training Request Details</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
               <p><strong>Employee:</strong> {selectedRequest.user?.name}</p>
               <p><strong>Department:</strong> {selectedRequest.user?.department}</p>
@@ -322,5 +440,5 @@ export default function AdminPanel() {
         </div>
       )}
     </div>
-  )
+  );
 }

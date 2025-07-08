@@ -2,23 +2,29 @@ const express = require('express');
 const router = express.Router();
 const TrainingNeed = require('../models/TrainingNeed');
 const auth = require('../middleware/authMiddleware');
+const User = require('../models/User');
 
 // Submit training request (Employee)
 router.post('/submit', auth, async (req, res) => {
   try {
-    let status;
+    let status = 'Pending_Manager';
+    let managerId = null;
 
     if (req.user.role === 'manager') {
-      // Manager's own request goes to admin directly
+      status = 'Pending_HOD';
+    } else if (req.user.role === 'hod') {
       status = 'Pending_Admin';
     } else {
-      // Employee request first goes to manager
-      status = 'Pending_Manager';
+      const userDoc = await User.findById(req.user._id).select('manager');
+      if (userDoc?.manager) {
+        managerId = userDoc.manager;
+      }
     }
 
     const trainingNeed = new TrainingNeed({
       user: req.user._id,
       department: req.user.department,
+      manager: managerId,
       ...req.body,
       status,
     });
@@ -31,59 +37,34 @@ router.post('/submit', auth, async (req, res) => {
   }
 });
 
-
-// Get all training requests (Admin/Manager)
+// Get all training requests
 router.get('/all', auth, async (req, res) => {
   try {
     let requests;
-
     if (req.user.role === 'admin') {
-      requests = await TrainingNeed.find({
-        status: { $in: ['Approved_By_Manager', 'Pending_Admin'] },
-        department: req.user.department
-      })
+      requests = await TrainingNeed.find({ status: 'Approved_By_HOD' })
         .populate('user', 'name email department role')
         .sort({ createdAt: -1 });
-
-      return res.json(requests);
     } else if (req.user.role === 'manager') {
-      requests = await TrainingNeed.find({ department: req.user.department })
+      requests = await TrainingNeed.find({ manager: req.user._id })
         .populate('user', 'name email department role')
         .sort({ createdAt: -1 });
-
-      return res.json(requests);
+    } else if (req.user.role === 'hod') {
+      requests = await TrainingNeed.find({ hod: req.user._id })
+        .populate('user', 'name email department role')
+        .sort({ createdAt: -1 });
     } else {
       return res.status(403).json({ msg: 'Forbidden' });
     }
 
+    res.json(requests);
   } catch (err) {
     console.error('Fetching Training Requests Error:', err);
     res.status(500).json({ msg: 'Server error' });
   }
 });
 
-
-router.put('/update-status/:id', auth, async (req, res) => {
-  const { status } = req.body;
-  const allowedStatuses = ['Pending', 'Approved', 'Rejected'];
-
-  if (!allowedStatuses.includes(status)) {
-    return res.status(400).json({ msg: 'Invalid status value' });
-  }
-
-  try {
-    const updated = await TrainingNeed.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true }
-    );
-    res.json(updated);
-  } catch (err) {
-    console.error('Status update error:', err);
-    res.status(500).json({ msg: 'Server error' });
-  }
-});
-
+// My Requests
 router.get('/my-requests', auth, async (req, res) => {
   try {
     const requests = await TrainingNeed.find({ user: req.user.id })
@@ -96,29 +77,58 @@ router.get('/my-requests', auth, async (req, res) => {
   }
 });
 
-
-// Get all requests needing manager review
+// Manager review requests
 router.get('/manager-review', auth, async (req, res) => {
   if (req.user.role !== 'manager') return res.status(403).send('Forbidden');
 
-  const requests = await TrainingNeed.find({
-    status: 'Pending_Manager',
-    department: req.user.department
-  }).populate('user', 'name department');
+  const requests = await TrainingNeed.find({ status: 'Pending_Manager' })
+    .populate({
+      path: 'user',
+      match: { manager: req.user._id },
+      select: 'name department',
+    })
+    .then(data => data.filter(r => r.user));
 
   res.json(requests);
 });
 
-// Approve or Reject
+// Manager decision
+// Approve or Reject (Manager)
 router.patch('/manager-review/:id', auth, async (req, res) => {
-  const { decision } = req.body; // decision = 'approve' or 'reject'
+  const { decision } = req.body;
   if (req.user.role !== 'manager') return res.status(403).send('Forbidden');
 
-  const status = decision === 'approve' ? 'Approved_By_Manager' : 'Rejected_By_Manager';
+  const status = decision === 'approve' ? 'Pending_HOD' : 'Rejected_By_Manager';
 
   await TrainingNeed.findByIdAndUpdate(req.params.id, {
     status,
-    reviewedByManager: req.user._id
+    reviewedByManager: req.user._id,
+  });
+
+  res.json({ msg: `Training request ${status}` });
+});
+
+
+// HOD Review
+router.get('/hod-review', auth, async (req, res) => {
+  if (req.user.role !== 'hod') return res.status(403).send('Forbidden');
+
+  const requests = await TrainingNeed.find({ status: 'Pending_HOD' })
+    .populate('user', 'name email department role')
+    .sort({ createdAt: -1 });
+
+  res.json(requests);
+});
+
+router.patch('/hod-review/:id', auth, async (req, res) => {
+  if (req.user.role !== 'hod') return res.status(403).send('Forbidden');
+
+  const { decision } = req.body;
+  const status = decision === 'approve' ? 'Approved_By_HOD' : 'Rejected_By_HOD';
+
+  await TrainingNeed.findByIdAndUpdate(req.params.id, {
+    status,
+    reviewedByHOD: req.user._id,
   });
 
   res.json({ msg: `Training request ${status}` });
@@ -126,32 +136,30 @@ router.patch('/manager-review/:id', auth, async (req, res) => {
 
 
 
-
+// Admin Review (Only if HOD approved)
 router.get('/admin-review', auth, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).send('Forbidden');
 
   const requests = await TrainingNeed.find({
-    status: { $in: ['Approved_By_Manager', 'Pending_Admin'] },
+    status: 'Approved_By_HOD',
     department: req.user.department
   }).populate('user', 'name department role');
 
   res.json(requests);
 });
 
-
 router.patch('/admin-review/:id', auth, async (req, res) => {
-  const { decision } = req.body;
   if (req.user.role !== 'admin') return res.status(403).send('Forbidden');
 
+  const { decision } = req.body;
   const status = decision === 'approve' ? 'Approved_By_Admin' : 'Rejected_By_Admin';
 
   await TrainingNeed.findByIdAndUpdate(req.params.id, {
     status,
-    reviewedByAdmin: req.user._id
+    reviewedByAdmin: req.user._id,
   });
 
   res.json({ msg: `Training request ${status}` });
 });
-
 
 module.exports = router;
