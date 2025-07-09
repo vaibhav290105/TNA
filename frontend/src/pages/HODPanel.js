@@ -75,8 +75,8 @@ export default function HODPanel() {
         await API.patch(`/auth/users/${employeeId}/assign-managers`, { managerId });
         alert('Mapping updated');
 
-        fetchUsersForMapping();              // Refresh employee list
-        fetchMappedEmployees(managerId);     // ✅ Refresh mapped employees immediately
+        fetchUsersForMapping();              
+        fetchMappedEmployees(managerId);    
     } catch {
         alert('Mapping failed');
     }
@@ -87,7 +87,7 @@ const handleUnmapping = async (employeeId) => {
     await API.patch(`/auth/users/${employeeId}/unassign-managers`, { managerId: selectedManager._id });
     alert('Employee unmapped from manager');
 
-    fetchUsersForMapping(); // refresh both lists
+    fetchUsersForMapping(); 
     if (selectedManager?._id) {
       fetchMappedEmployees(selectedManager._id);
     }
@@ -150,21 +150,35 @@ const handleUnmapping = async (employeeId) => {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-gray-800 text-white px-6 py-4 flex justify-between items-center shadow-md">
-        <h1 className="text-xl font-bold">HOD Dashboard</h1>
-        <button onClick={logout} className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded font-medium">Logout</button>
+  
+        <div className="flex items-center gap-4">
+          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ5K42hVGPlbGNM1cnJt7_vKICraUbzYmmlcA&s" alt="IGL Logo" className="h-10 w-auto" />
+          <div>
+            <h1 className="text-xl font-bold leading-tight">HOD Dashboard</h1>
+            <p className="text-sm text-gray-300">Indraprastha Gas Limited</p>
+          </div>
+        </div>
+
+        <button
+          onClick={logout}
+          className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded font-medium"
+        >
+          Logout
+        </button>
       </header>
+
 
       <div className="max-w-6xl mx-auto p-6">
         <div className="flex gap-4 mb-6">
           <button onClick={() => setTab('review')} className={`px-4 py-2 rounded ${tab === 'review' ? 'bg-purple-600 text-white' : 'bg-gray-200'}`}>Review Requests</button>
           <button onClick={() => setTab('submit')} className={`px-4 py-2 rounded ${tab === 'submit' ? 'bg-purple-600 text-white' : 'bg-gray-200'}`}>Submit Training Request</button>
           <button onClick={() => setTab('my')} className={`px-4 py-2 rounded ${tab === 'my' ? 'bg-purple-600 text-white' : 'bg-gray-200'}`}>My Requests</button>
-          <button onClick={() => setTab('map')} className={`px-4 py-2 rounded ${tab === 'map' ? 'bg-purple-600 text-white' : 'bg-gray-200'}`}>Map Employees</button>
+          <button onClick={() => setTab('map')} className={`px-4 py-2 rounded ${tab === 'map' ? 'bg-purple-600 text-white' : 'bg-gray-200'}`}>Assign Employees</button>
         </div>
 
         {tab === 'map' && (
           <div>
-            <h2 className="text-2xl font-semibold mb-4">Map Employees to Managers</h2>
+            <h2 className="text-2xl font-semibold mb-4">Assign Employees to Managers</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-white p-4 rounded shadow">
                 <h3 className="text-xl font-bold mb-4 text-center">Managers</h3>
@@ -205,7 +219,7 @@ const handleUnmapping = async (employeeId) => {
                         </div>
                         ))
                     ) : (
-                        <p className="text-center italic text-gray-500">No employees mapped yet.</p>
+                        <p className="text-center italic text-gray-500">No employees Assigned yet.</p>
                     )
                     ) : (
                     <p className="text-center italic text-gray-500">Select a manager to view mappings.</p>
@@ -232,6 +246,7 @@ const handleUnmapping = async (employeeId) => {
                       <p><strong>Department:</strong> {req.user?.department}</p>
                       <p><strong>Status:</strong> {req.status}</p>
                       <p><strong>Submitted On:</strong> {new Date(req.createdAt).toLocaleDateString()}</p>
+                      <p><strong>Request No:</strong> {req.requestNumber}</p>
                       <button
                         onClick={() => { setSelectedRequest(req); setShowModal(true); }}
                         className="text-blue-600 mt-2 hover:underline flex items-center gap-1"
@@ -318,6 +333,7 @@ const handleUnmapping = async (employeeId) => {
                 <div key={req._id} className="bg-white p-4 rounded shadow mb-5 border">
                   <p><strong>Status:</strong> {req.status}</p>
                   <p><strong>Submitted On:</strong> {new Date(req.createdAt).toLocaleDateString()}</p>
+                  <p><strong>Request No:</strong> {req.requestNumber}</p>
                   <button
                     onClick={() => { setSelectedRequest(req); setShowModal(true); }}
                     className="text-blue-600 mt-2 hover:underline flex items-center gap-1"

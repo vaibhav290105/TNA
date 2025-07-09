@@ -55,14 +55,20 @@ export default function ManagerPanel() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
+      
       <header className="bg-gray-800 text-white px-6 py-4 flex justify-between items-center shadow-md">
-        <div>
-          <h1 className="text-xl font-bold">Manager Dashboard</h1>
-          {currentUser && (
-            <p className="text-sm text-gray-300">Welcome, {currentUser.name}</p>
-          )}
+  
+        <div className="flex items-center gap-4">
+          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ5K42hVGPlbGNM1cnJt7_vKICraUbzYmmlcA&s" alt="IGL Logo" className="h-10 w-auto" />
+          <div>
+            <h1 className="text-xl font-bold">Manager Dashboard</h1>
+            {currentUser && (
+              <p className="text-sm text-gray-300">Welcome, {currentUser.name}</p>
+            )}
+          </div>
         </div>
+
+      
         <button
           onClick={handleLogout}
           className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded font-medium"
@@ -70,6 +76,7 @@ export default function ManagerPanel() {
           Logout
         </button>
       </header>
+
 
       <div className="max-w-7xl mx-auto p-6">
         {/* Tabs */}
@@ -100,9 +107,9 @@ export default function ManagerPanel() {
 
         {/* Mapped Employees */}
         <div className="mb-10 bg-white shadow p-4 rounded-lg">
-          <h2 className="text-lg font-semibold mb-2">👥 Employees Mapped to You</h2>
+          <h2 className="text-lg font-semibold mb-2">👥 Employees Assigned to You</h2>
           {mappedEmployees.length === 0 ? (
-            <p className="text-gray-500 italic">No employees mapped yet.</p>
+            <p className="text-gray-500 italic">No employees Assinged yet.</p>
           ) : (
             <ul className="list-disc pl-6 text-gray-800">
               {mappedEmployees.map((emp) => (
@@ -124,6 +131,7 @@ export default function ManagerPanel() {
               >
                 <div>
                   <p><strong>Name:</strong> {req.user?.name || 'You'}</p>
+                  <p><strong>Request No:</strong> {req.requestNumber}</p>
                   <p><strong>Department:</strong> {req.user?.department}</p>
                   <p><strong>Submitted On:</strong> {new Date(req.createdAt).toLocaleDateString()}</p>
                   <p className="mb-3"><strong>Status:</strong>

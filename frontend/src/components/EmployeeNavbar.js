@@ -4,7 +4,16 @@ import { Link } from 'react-router-dom';
 export default function EmployeeNavbar({ fetchSurveys, onLogout }) {
   return (
     <nav className="bg-gray-800 text-white px-6 py-4 flex justify-between items-center shadow-md">
-      <h1 className="text-xl font-bold">Employee Dashboard</h1>
+      {/* Logo and Title */}
+      <div className="flex items-center gap-4">
+        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ5K42hVGPlbGNM1cnJt7_vKICraUbzYmmlcA&s" alt="IGL Logo" className="h-10 w-auto" />
+        <div>
+          <h1 className="text-xl font-bold leading-tight">Employee Dashboard</h1>
+          <p className="text-sm text-gray-300">Indraprastha Gas Limited</p>
+        </div>
+      </div>
+
+      {/* Navigation Buttons */}
       <div className="flex gap-4 items-center">
         <Link
           to="/training-request"

@@ -130,15 +130,23 @@ export default function AdminPanel() {
   };
 
   const handleUnmap = async (employeeId) => {
+  if (!selectedManager) {
+    alert('Please select a manager first.');
+    return;
+  }
+
   try {
-    await API.patch(`/auth/users/${employeeId}/unassign-manager`);
+    await API.patch(`/auth/users/${employeeId}/unassign-managers`, {
+      managerId: selectedManager,
+    });
     alert('Unmapped successfully');
-    await fetchUsers(); // optional, in case your UI depends on this too
-    await fetchMappedEmployees(selectedManager); // ✅ refresh the right panel
+    await fetchUsers(); 
+    await fetchMappedEmployees(selectedManager); 
   } catch (err) {
     alert('Failed to unmap');
   }
 };
+
 
 
 
@@ -150,12 +158,12 @@ export default function AdminPanel() {
     }
 
     try {
-      const res = await API.patch(`/auth/users/${employeeId}/assign-manager`, {
+      const res = await API.patch(`/auth/users/${employeeId}/assign-managers`, {
         managerId: selectedManager,
       });
       alert('Mapped successfully');
-      await fetchUsers(); // 🔄 Update users list
-      await fetchMappedEmployees(selectedManager); // 🔄 Refresh mapped list instantly
+      await fetchUsers(); 
+      await fetchMappedEmployees(selectedManager); 
     } catch (err) {
       alert('Failed to map');
     }
@@ -167,11 +175,22 @@ export default function AdminPanel() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-gray-800 text-white px-6 py-4 flex justify-between items-center shadow-md">
-        <h1 className="text-xl font-bold">Admin Dashboard</h1>
-        <button onClick={logout} className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded font-medium">
+     
+        <div className="flex items-center gap-4">
+          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ5K42hVGPlbGNM1cnJt7_vKICraUbzYmmlcA&s" alt="IGL Logo" className="h-10 w-auto" />
+          <div>
+            <h1 className="text-xl font-bold leading-tight">Admin Dashboard</h1>
+            <p className="text-sm text-gray-300">Indraprastha Gas Limited</p>
+          </div>
+        </div>
+        <button
+          onClick={logout}
+          className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded font-medium"
+        >
           Logout
         </button>
       </header>
+
 
       <div className="max-w-6xl mx-auto p-6">
         <div className="flex justify-center mb-8 gap-6">
@@ -198,7 +217,7 @@ export default function AdminPanel() {
         {/* Mapping Tab */}
         {activeTab === 'mapping' && (
           <>
-            <h2 className="text-2xl font-semibold mb-4">👥 Map Employees to Managers</h2>
+            <h2 className="text-2xl font-semibold mb-4">👥 Assign Employees to Managers</h2>
             <select onChange={(e) => setManagerMapDept(e.target.value)} className="border rounded p-2 mb-4">
               <option value="">Select Department</option>
               {[...new Set(users.map(u => u.department))].map(dep => (
@@ -246,12 +265,15 @@ export default function AdminPanel() {
                 {/* Mapped Employees */}
                 <div className="border rounded p-3 bg-white">
                   <h3 className="text-xl font-bold mb-4 text-center">
-                    {selectedManager?.name ? `Mapped to ${selectedManager.name}` : 'Mapped to Selected Manager'}
+                    {selectedManager
+                      ? `Mapped to ${users.find(u => u._id === selectedManager)?.name || 'Selected Manager'}`
+                      : 'Assigned to Selected Manager'}
                   </h3>
+
                   {!selectedManager ? (
                     <p className="text-center text-gray-500 italic">Select a manager to view mappings.</p>
                   ) : mappedEmployees.length === 0 ? (
-                    <p className="text-center text-gray-500 italic">No employees mapped yet.</p>
+                    <p className="text-center text-gray-500 italic">No employees Assigned yet.</p>
                   ) : (
                     mappedEmployees.map(emp => (
                       <div key={emp._id} className="flex justify-between items-center py-1">
@@ -353,6 +375,7 @@ export default function AdminPanel() {
                       <th className="px-5 py-3 text-left border-b">Employee</th>
                       <th className="px-5 py-3 text-left border-b">Department</th>
                       <th className="px-5 py-3 text-left border-b">Role</th>
+                      <th className="px-5 py-3 text-left border-b">Request ID</th>
                       <th className="px-5 py-3 text-left border-b">Status</th>
                       <th className="px-5 py-3 text-left border-b">Actions</th>
                     </tr>
@@ -365,6 +388,7 @@ export default function AdminPanel() {
                           <td className="px-5 py-3 border-b">{req.user?.name}</td>
                           <td className="px-5 py-3 border-b">{req.user?.department}</td>
                           <td className="px-5 py-3 border-b">{req.user?.role}</td>
+                          <td className="px-5 py-3 border-b">{req.requestNumber}</td>
                           <td className="px-5 py-3 border-b">
                             <span className={`px-3 py-1 text-xs rounded-full font-semibold ${color}`}>
                               {label}

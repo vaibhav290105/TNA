@@ -42,6 +42,7 @@ export default function MyTrainingRequests() {
               <tr>
                 <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3">Submitted On</th>
+                <th className="px-5 py-3">trans_no</th>
                 <th className="px-5 py-3 text-center">Actions</th>
               </tr>
             </thead>
@@ -54,6 +55,9 @@ export default function MyTrainingRequests() {
                     </span>
                   </td>
                   <td className="px-5 py-3">{new Date(req.createdAt).toLocaleDateString()}</td>
+                  <td className="text-sm text-gray-500">
+                    <strong>🆔 Req. No:</strong> {req.requestNumber}
+                  </td>
                   <td className="px-5 py-3 text-center">
                     <button
                       onClick={() => setSelectedRequest(req)}
