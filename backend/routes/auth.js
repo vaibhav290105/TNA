@@ -5,6 +5,9 @@ const User = require('../models/User');
 const router = express.Router();
 const auth = require('../middleware/authMiddleware');
 const crypto = require('crypto');
+const nodemailer = require('nodemailer');
+require('dotenv').config();
+
 
 router.post('/register', async (req, res) => {
   const { name, email, password, role, department, location } = req.body;
@@ -49,14 +52,14 @@ router.get('/users', auth, async (req, res) => {
     let filter = {};
 
     if (currentUser.role === 'admin') {
-      // Admins can view all users
+      
       filter = {};
     } else if (currentUser.role === 'hod') {
-      // HODs can view users in their department
+     
       filter = {
         department: currentUser.department,
         role: { $in: ['employee', 'manager'] },
-        _id: { $ne: currentUser._id }, // exclude self
+        _id: { $ne: currentUser._id }, 
       };
     } else {
       return res.status(403).json({ msg: 'Forbidden' });
@@ -133,35 +136,83 @@ router.patch('/users/:id/unassign-managers', auth, async (req, res) => {
 });
 
 
-router.post('/forgot-password', async (req, res) => {
+
+
+// POST /auth/request-reset
+router.post('/request-reset', async (req, res) => {
   const { email } = req.body;
   const user = await User.findOne({ email });
-  if (!user) return res.status(400).json({ msg: 'Email not registered' });
+  if (!user) return res.status(404).json({ msg: 'User not found' });
 
   const token = crypto.randomBytes(32).toString('hex');
   user.resetToken = token;
   user.resetTokenExpiry = Date.now() + 3600000; // 1 hour
   await user.save();
 
-  // Send token via email here (e.g., nodemailer)
-  res.json({ msg: 'Password reset link sent to email' });
+  const resetLink = `http://localhost:3000/reset-password/${token}`;
+
+  // Set up nodemailer
+  const transporter = nodemailer.createTransport({
+    service: 'Gmail', 
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  await transporter.sendMail({
+    to: email,
+    subject: 'Password Reset Link',
+    html: `<p>Click <a href="${resetLink}">here</a> to reset your password. This link will expire in 1 hour.</p>`,
+  });
+
+  res.json({ msg: 'Reset link sent to email' });
 });
+
+/*router.post('/request-reset', async (req, res) => {
+  const { email } = req.body;
+
+  const user = await User.findOne({ email });
+  if (!user) return res.status(404).json({ msg: 'Email not registered' });
+
+  const token = crypto.randomBytes(32).toString('hex');
+  user.resetToken = token;
+  user.resetTokenExpiry = Date.now() + 3600000;
+  await user.save();
+
+  const resetLink = `http://localhost:3000/reset-password/${token}`;
+
+  
+  await transporter.sendMail({
+    to: user.email,
+    subject: 'Password Reset',
+    html: `<p>Click <a href="${resetLink}">here</a> to reset your password. This link will expire in 1 hour.</p>`
+  });
+
+  res.json({ msg: 'Reset link sent to your email' });
+});*/
+
+
 
 router.post('/reset-password/:token', async (req, res) => {
   const { password } = req.body;
+  const { token } = req.params;
+
   const user = await User.findOne({
-    resetToken: req.params.token,
-    resetTokenExpiry: { $gt: Date.now() }
+    resetToken: token,
+    resetTokenExpiry: { $gt: Date.now() },
   });
+
   if (!user) return res.status(400).json({ msg: 'Invalid or expired token' });
 
   user.password = await bcrypt.hash(password, 10);
-  user.resetToken = undefined;
-  user.resetTokenExpiry = undefined;
+  user.resetToken = null;
+  user.resetTokenExpiry = null;
   await user.save();
 
-  res.json({ msg: 'Password reset successful' });
+  res.json({ msg: 'Password reset successfully' });
 });
+
 
 
 // Get employees assigned to a particular manager (used by HOD/Admin)
@@ -173,7 +224,6 @@ router.get('/users/manager/:managerId', auth, async (req, res) => {
       return res.status(403).json({ msg: 'Forbidden' });
     }
 
-    // ✅ Correct field name for array
     const employees = await User.find({ managers: managerId })
       .select('name email department location');
 

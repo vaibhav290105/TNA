@@ -3,52 +3,39 @@ import { useParams, useNavigate } from 'react-router-dom';
 import API from '../services/api';
 
 export default function ResetPassword() {
+  const [password, setPassword] = useState('');
+  const [msg, setMsg] = useState('');
   const { token } = useParams();
   const navigate = useNavigate();
-  const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
-  const [message, setMessage] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (password !== confirm) return setMessage('Passwords do not match');
     try {
       const res = await API.post(`/auth/reset-password/${token}`, { password });
-      setMessage(res.data.msg);
+      setMsg(res.data.msg);
       setTimeout(() => navigate('/'), 2000);
     } catch (err) {
-      setMessage(err.response?.data?.msg || 'Reset failed');
+      setMsg(err.response?.data?.msg || 'Reset failed');
     }
   };
 
   return (
-    <div className="max-w-md mx-auto mt-10 p-6 bg-white shadow rounded">
-      <h2 className="text-xl font-bold mb-4 text-center">🔐 Reset Password</h2>
-      <form onSubmit={handleSubmit}>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-6">
+      <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow-md max-w-md w-full">
+        <h2 className="text-2xl font-bold mb-4">🔑 Reset Password</h2>
         <input
           type="password"
+          className="w-full p-2 border mb-4 rounded"
           placeholder="New Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full p-2 border rounded mb-4"
           required
         />
-        <input
-          type="password"
-          placeholder="Confirm New Password"
-          value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
-          className="w-full p-2 border rounded mb-4"
-          required
-        />
-        <button
-          type="submit"
-          className="w-full bg-green-600 text-white py-2 rounded"
-        >
-          Update Password
+        <button type="submit" className="w-full bg-green-600 text-white p-2 rounded">
+          Reset Password
         </button>
+        {msg && <p className="mt-4 text-center text-sm text-gray-600">{msg}</p>}
       </form>
-      {message && <p className="mt-4 text-center text-sm text-red-600">{message}</p>}
     </div>
   );
 }

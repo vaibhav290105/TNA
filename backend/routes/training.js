@@ -21,9 +21,9 @@ router.post('/submit', auth, async (req, res) => {
       }
     }
 
-    // ✅ Generate unique request number
-    const timestamp = Date.now().toString().slice(-6); // last 6 digits of timestamp
-    const random = Math.floor(100 + Math.random() * 900); // 3-digit random number
+    
+    const timestamp = Date.now().toString().slice(-6);
+    const random = Math.floor(100 + Math.random() * 900); 
     const requestNumber = `TRN-${timestamp}-${random}`;
 
     const trainingNeed = new TrainingNeed({
@@ -31,7 +31,7 @@ router.post('/submit', auth, async (req, res) => {
       department: req.user.department,
       managers: managerIds,
       ...req.body,
-      requestNumber,   // ✅ assign generated number
+      requestNumber,   
       status,
     });
 

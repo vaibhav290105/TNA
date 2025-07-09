@@ -225,9 +225,6 @@ const handleUnmapping = async (employeeId) => {
                     <p className="text-center italic text-gray-500">Select a manager to view mappings.</p>
                     )}
 
-
-
-
               </div>
             </div>
           </div>

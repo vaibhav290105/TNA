@@ -210,7 +210,7 @@ export default function AdminPanel() {
             onClick={() => setActiveTab('mapping')}
             className={`px-5 py-2 rounded text-white ${activeTab === 'mapping' ? 'bg-purple-600' : 'bg-gray-400'}`}
           >
-            👥 Map Managers & Employees
+            👥 Assign Employees to Managers
           </button>
         </div>
 
@@ -267,7 +267,7 @@ export default function AdminPanel() {
                   <h3 className="text-xl font-bold mb-4 text-center">
                     {selectedManager
                       ? `Mapped to ${users.find(u => u._id === selectedManager)?.name || 'Selected Manager'}`
-                      : 'Assigned to Selected Manager'}
+                      : 'Selected Manager'}
                   </h3>
 
                   {!selectedManager ? (
