@@ -3,7 +3,7 @@ import API from '../services/api';
 import { Link, useNavigate } from 'react-router-dom';
 
 export default function AdminPanel() {
-  const [activeTab, setActiveTab] = useState('survey');
+  const [activeTab, setActiveTab] = useState('training');
   const [title, setTitle] = useState('');
   const [questions, setQuestions] = useState(['']);
   const [users, setUsers] = useState([]);

@@ -7,10 +7,43 @@ const auth = require('../middleware/authMiddleware');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 require('dotenv').config();
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/'); // make sure this folder exists
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  }
+});
+
+const upload = multer({ storage });
+
+router.patch('/update-image', auth, upload.single('image'), async (req, res) => {
+  const user = await User.findById(req.user._id);
+  if (!user) return res.status(404).json({ msg: 'User not found' });
+
+  if (req.file) {
+    if (user.image) {
+      const imagePath = path.join(__dirname, '..', 'uploads', user.image);
+      if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
+    }
+    user.image = req.file.filename;
+    await user.save();
+  }
+
+  res.json({ msg: 'Image updated', image: user.image });
+});
 
 
-router.post('/register', async (req, res) => {
+
+
+router.post('/register', upload.single('image'), async (req, res) => {
   const { name, email, password, role, department, location } = req.body;
+  const image = req.file ? req.file.filename : null;
 
   const existing = await User.findOne({ email });
   if (existing) return res.status(400).json({ msg: 'User already exists' });
@@ -23,12 +56,14 @@ router.post('/register', async (req, res) => {
     password: hashed,
     role,
     department,
-    location
+    location,
+    image
   });
 
   await user.save();
   res.status(201).json({ msg: 'User created' });
 });
+
 
 
 router.post('/login', async (req, res) => {
@@ -87,7 +122,7 @@ router.get('/me', auth, async (req, res) => {
       mappedEmployees = await User.find({ managers: user._id }, 'name department email');
     }
 
-    res.json({ ...user.toObject(), mappedEmployees });
+    res.json({ ...user.toObject(), mappedEmployees, imageUrl: user.image ? `http://localhost:5000/uploads/${user.image}` : null });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch profile' });
@@ -168,29 +203,6 @@ router.post('/request-reset', async (req, res) => {
 
   res.json({ msg: 'Reset link sent to email' });
 });
-
-/*router.post('/request-reset', async (req, res) => {
-  const { email } = req.body;
-
-  const user = await User.findOne({ email });
-  if (!user) return res.status(404).json({ msg: 'Email not registered' });
-
-  const token = crypto.randomBytes(32).toString('hex');
-  user.resetToken = token;
-  user.resetTokenExpiry = Date.now() + 3600000;
-  await user.save();
-
-  const resetLink = `http://localhost:3000/reset-password/${token}`;
-
-  
-  await transporter.sendMail({
-    to: user.email,
-    subject: 'Password Reset',
-    html: `<p>Click <a href="${resetLink}">here</a> to reset your password. This link will expire in 1 hour.</p>`
-  });
-
-  res.json({ msg: 'Reset link sent to your email' });
-});*/
 
 
 

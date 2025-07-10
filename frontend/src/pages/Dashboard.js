@@ -39,7 +39,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchUserProfile();
-    fetchSurveys(); // optional: auto-load
+    fetchSurveys(); 
   }, []);
 
   const handleLogout = () => {

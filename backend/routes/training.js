@@ -90,7 +90,7 @@ router.get('/manager-review', auth, async (req, res) => {
 
   const requests = await TrainingNeed.find({
     status: 'Pending_Manager',
-    managers: req.user._id  // ✅ check if manager is in the array
+    managers: req.user._id  
   })
     .populate('user', 'name department')
     .sort({ createdAt: -1 });

@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import API from '../services/api';
-
+import { useNavigate } from 'react-router-dom';
 export default function MyTrainingRequests() {
   const [myRequests, setMyRequests] = useState([]);
   const [selectedRequest, setSelectedRequest] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     API.get('/training-request/my-requests')
@@ -32,6 +33,14 @@ export default function MyTrainingRequests() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <h2 className="text-3xl font-bold mb-6 text-gray-800">📋 My Training Requests</h2>
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={() => navigate('/dashboard')}
+          className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded"
+        >
+          ← Back to Dashboard
+        </button>
+      </div>
 
       {myRequests.length === 0 ? (
         <p className="text-gray-500 text-center">You haven’t submitted any training requests yet.</p>
@@ -42,7 +51,7 @@ export default function MyTrainingRequests() {
               <tr>
                 <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3">Submitted On</th>
-                <th className="px-5 py-3">trans_no</th>
+                <th className="px-5 py-3">Request_no</th>
                 <th className="px-5 py-3 text-center">Actions</th>
               </tr>
             </thead>
@@ -56,7 +65,7 @@ export default function MyTrainingRequests() {
                   </td>
                   <td className="px-5 py-3">{new Date(req.createdAt).toLocaleDateString()}</td>
                   <td className="text-sm text-gray-500">
-                    <strong>🆔 Req. No:</strong> {req.requestNumber}
+                    <strong>🆔:</strong> {req.requestNumber}
                   </td>
                   <td className="px-5 py-3 text-center">
                     <button
