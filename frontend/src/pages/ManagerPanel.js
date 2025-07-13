@@ -68,13 +68,20 @@ export default function ManagerPanel() {
           </div>
         </div>
 
-      
-        <button
-          onClick={handleLogout}
-          className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded font-medium"
-        >
-          Logout
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate('/profile')}
+            className="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded font-medium"
+          >
+            👤 Profile
+          </button>
+          <button
+            onClick={handleLogout}
+            className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded font-medium"
+          >
+            Logout
+          </button>
+        </div>
       </header>
 
 

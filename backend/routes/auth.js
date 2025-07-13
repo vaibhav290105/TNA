@@ -13,7 +13,7 @@ const fs = require('fs');
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/'); // make sure this folder exists
+    cb(null, 'uploads/'); 
   },
   filename: (req, file, cb) => {
     cb(null, `${Date.now()}-${file.originalname}`);
@@ -75,7 +75,7 @@ router.post('/login', async (req, res) => {
   if (!match) return res.status(400).json({ msg: 'Invalid credentials' });
 
   const token = jwt.sign({ id: user._id, role: user.role, name: user.name, department: user.department, location:user.location }, process.env.JWT_SECRET);
-  res.json({ token, role: user.role, name: user.name, department: user.department, location: user.location, role:user.role});
+  res.json({ token, role: user.role, name: user.name, department: user.department, location: user.location});
 });
 
 router.get('/users', auth, async (req, res) => {
@@ -245,6 +245,23 @@ router.get('/users/manager/:managerId', auth, async (req, res) => {
     res.status(500).json({ msg: 'Server error' });
   }
 });
+
+// PATCH /auth/update-profile
+router.patch('/update-profile', auth, async (req, res) => {
+  const { name, department, location, email } = req.body;
+  const user = await User.findById(req.user._id);
+  if (!user) return res.status(404).json({ msg: 'User not found' });
+
+  user.name = name || user.name;
+  user.department = department || user.department;
+  user.location = location || user.location;
+  user.email = email || user.email;
+
+  await user.save();
+  res.json({ msg: 'Profile updated', user });
+});
+
+
 
 
 

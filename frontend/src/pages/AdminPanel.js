@@ -15,6 +15,13 @@ export default function AdminPanel() {
   const [selectedManager, setSelectedManager] = useState('');
   const [managerMapDept, setManagerMapDept] = useState('');
   const [mappedEmployees, setMappedEmployees] = useState([]);
+  const [searchId, setSearchId] = useState('');
+  const [filterDept, setFilterDept] = useState('');
+  const [searchResult, setSearchResult] = useState(null);
+  const [filterName, setFilterName] = useState('');
+  const [filterEmail, setFilterEmail] = useState('');
+  const [filterLocation, setFilterLocation] = useState('');
+
 
   const navigate = useNavigate();
 
@@ -56,6 +63,19 @@ export default function AdminPanel() {
         .catch(() => alert('Failed to fetch training requests'));
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    if (!searchId.trim()) {
+      setSearchResult(null);
+    }
+  }, [searchId]);
+
+  useEffect(() => {
+    if (searchResult) {
+      setSearchResult(null);
+    }
+  }, [filterDept, filterName, filterEmail, filterLocation]);
+
 
   const addQuestion = () => setQuestions([...questions, '']);
   const updateQuestion = (index, value) => {
@@ -183,12 +203,20 @@ export default function AdminPanel() {
             <p className="text-sm text-gray-300">Indraprastha Gas Limited</p>
           </div>
         </div>
-        <button
-          onClick={logout}
-          className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded font-medium"
-        >
-          Logout
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate('/profile')}
+            className="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded font-medium"
+          >
+            👤 Profile
+          </button>
+          <button
+            onClick={logout}
+            className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded font-medium"
+          >
+            Logout
+          </button>
+        </div>
       </header>
 
 
@@ -362,67 +390,151 @@ export default function AdminPanel() {
         {/* Training Tab */}
         {activeTab === 'training' && (
           <>
+            {/* 🔍 Search & Filter Bar */}
+            <div className="flex flex-col lg:flex-row justify-between gap-6 mb-8">
+              {/* Left Filters */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 flex-1">
+                <select
+                  value={filterDept}
+                  onChange={(e) => setFilterDept(e.target.value)}
+                  className="border rounded p-2 w-full bg-white"
+                >
+                  <option value="">All Departments</option>
+                  {[...new Set(users.map(u => u.department))].map(dep => (
+                    <option key={dep} value={dep}>{dep}</option>
+                  ))}
+                </select>
+
+                <input
+                  type="text"
+                  placeholder="Search by Name"
+                  value={filterName}
+                  onChange={(e) => setFilterName(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded w-full"
+                />
+
+                <input
+                  type="text"
+                  placeholder="Search by Email"
+                  value={filterEmail}
+                  onChange={(e) => setFilterEmail(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded w-full"
+                />
+
+                <input
+                  type="text"
+                  placeholder="Search by Location"
+                  value={filterLocation}
+                  onChange={(e) => setFilterLocation(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded w-full"
+                />
+              </div>
+
+              {/* Right Search by ID */}
+              <div className="flex gap-2 flex-col sm:flex-row items-center">
+                <input
+                  type="text"
+                  placeholder="Enter Request ID"
+                  value={searchId}
+                  onChange={(e) => setSearchId(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded w-64"
+                />
+                <button
+                  onClick={async () => {
+                    try {
+                      const res = await API.get(`/training-request/admin/${searchId}`);
+                      setSearchResult(res.data);
+                    } catch {
+                      alert('Request not found');
+                      setSearchResult(null);
+                    }
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full sm:w-auto"
+                >
+                  🔍 Search
+                </button>
+              </div>
+            </div>
+
+            {/* Title */}
             <h2 className="text-3xl font-bold text-gray-800 mb-6 flex items-center gap-2">
               📋 Employee Training Requests
             </h2>
-            {trainingRequests.length === 0 ? (
-              <p className="text-gray-500 italic text-center">No training requests submitted yet.</p>
-            ) : (
-              <div className="overflow-x-auto shadow rounded-lg">
-                <table className="min-w-full bg-white text-sm text-gray-800 border border-gray-200">
-                  <thead className="bg-gray-100 text-xs uppercase font-semibold tracking-wide text-gray-600">
-                    <tr>
-                      <th className="px-5 py-3 text-left border-b">Employee</th>
-                      <th className="px-5 py-3 text-left border-b">Department</th>
-                      <th className="px-5 py-3 text-left border-b">Role</th>
-                      <th className="px-5 py-3 text-left border-b">Request ID</th>
-                      <th className="px-5 py-3 text-left border-b">Status</th>
-                      <th className="px-5 py-3 text-left border-b">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {trainingRequests.map((req) => {
-                      const { label, color } = formatStatus(req.status);
-                      return (
-                        <tr key={req._id} className="hover:bg-gray-50 transition">
-                          <td className="px-5 py-3 border-b">{req.user?.name}</td>
-                          <td className="px-5 py-3 border-b">{req.user?.department}</td>
-                          <td className="px-5 py-3 border-b">{req.user?.role}</td>
-                          <td className="px-5 py-3 border-b">{req.requestNumber}</td>
-                          <td className="px-5 py-3 border-b">
-                            <span className={`px-3 py-1 text-xs rounded-full font-semibold ${color}`}>
-                              {label}
-                            </span>
-                          </td>
-                          <td className="px-5 py-3 border-b space-x-2">
-                            <button
-                              onClick={() => updateStatus(req._id, 'approve')}
-                              className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded shadow-sm transition"
-                            >
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => updateStatus(req._id, 'reject')}
-                              className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded shadow-sm transition"
-                            >
-                              Reject
-                            </button>
-                            <button
-                              onClick={() => setSelectedRequest(req)}
-                              className="text-indigo-600 hover:text-indigo-800 font-medium"
-                            >
-                              View
-                            </button>
-                          </td>
+
+            {/* Table */}
+            {
+              (() => {
+                const baseList = searchResult ? [searchResult] : trainingRequests;
+
+                const filteredRequests = baseList.filter((r) =>
+                  (!filterDept || r.user?.department?.toLowerCase() === filterDept.toLowerCase()) &&
+                  (!filterName || r.user?.name?.toLowerCase().includes(filterName.toLowerCase())) &&
+                  (!filterEmail || r.user?.email?.toLowerCase().includes(filterEmail.toLowerCase())) &&
+                  (!filterLocation || r.user?.location?.toLowerCase().includes(filterLocation.toLowerCase()))
+                );
+
+                return filteredRequests.length === 0 ? (
+                  <p className="text-gray-500 italic text-center">No training requests found.</p>
+                ) : (
+                  <div className="overflow-x-auto shadow rounded-lg">
+                    <table className="min-w-full bg-white text-sm text-gray-800 border border-gray-200">
+                      <thead className="bg-gray-100 text-xs uppercase font-semibold tracking-wide text-gray-600">
+                        <tr>
+                          <th className="px-5 py-3 text-left border-b">Employee</th>
+                          <th className="px-5 py-3 text-left border-b">Department</th>
+                          <th className="px-5 py-3 text-left border-b">Role</th>
+                          <th className="px-5 py-3 text-left border-b">Request ID</th>
+                          <th className="px-5 py-3 text-left border-b">Status</th>
+                          <th className="px-5 py-3 text-left border-b">Actions</th>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                      </thead>
+                      <tbody>
+                        {filteredRequests.map((req) => {
+                          const { label, color } = formatStatus(req.status);
+                          return (
+                            <tr key={req._id} className="hover:bg-gray-50 transition">
+                              <td className="px-5 py-3 border-b">{req.user?.name}</td>
+                              <td className="px-5 py-3 border-b">{req.user?.department}</td>
+                              <td className="px-5 py-3 border-b">{req.user?.role}</td>
+                              <td className="px-5 py-3 border-b">{req.requestNumber}</td>
+                              <td className="px-5 py-3 border-b">
+                                <span className={`px-3 py-1 text-xs rounded-full font-semibold ${color}`}>
+                                  {label}
+                                </span>
+                              </td>
+                              <td className="px-5 py-3 border-b space-x-2">
+                                <button
+                                  onClick={() => updateStatus(req._id, 'approve')}
+                                  className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded shadow-sm transition"
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  onClick={() => updateStatus(req._id, 'reject')}
+                                  className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded shadow-sm transition"
+                                >
+                                  Reject
+                                </button>
+                                <button
+                                  onClick={() => setSelectedRequest(req)}
+                                  className="text-indigo-600 hover:text-indigo-800 font-medium"
+                                >
+                                  View
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()
+            }
           </>
         )}
+
+
         
       </div>
       {selectedRequest && (

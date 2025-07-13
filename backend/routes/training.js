@@ -3,7 +3,9 @@ const router = express.Router();
 const TrainingNeed = require('../models/TrainingNeed');
 const auth = require('../middleware/authMiddleware');
 const User = require('../models/User');
+const mongoose = require('mongoose');
 
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 // Submit training request (Employee)
 router.post('/submit', auth, async (req, res) => {
   try {
@@ -50,15 +52,15 @@ router.get('/all', auth, async (req, res) => {
     let requests;
     if (req.user.role === 'admin') {
       requests = await TrainingNeed.find({ status: { $in: ['Approved_By_HOD', 'Pending_Admin'] } })
-        .populate('user', 'name email department role')
+        .populate('user', 'name email department role location')
         .sort({ createdAt: -1 });
     } else if (req.user.role === 'manager') {
       requests = await TrainingNeed.find({ manager: req.user._id })
-        .populate('user', 'name email department role')
+        .populate('user', 'name email department role location')
         .sort({ createdAt: -1 });
     } else if (req.user.role === 'hod') {
       requests = await TrainingNeed.find({ hod: req.user._id })
-        .populate('user', 'name email department role')
+        .populate('user', 'name email department role location')
         .sort({ createdAt: -1 });
     } else {
       return res.status(403).json({ msg: 'Forbidden' });
@@ -184,5 +186,23 @@ router.patch('/admin-review/:id', auth, async (req, res) => {
 
   res.json({ msg: `Training request ${status}` });
 });
+
+router.get('/admin/:id', async (req, res) => {
+  try {
+    const request = await TrainingNeed.findOne({
+      $or: [
+        { _id: isValidObjectId(req.params.id) ? req.params.id : null },
+        { requestNumber: req.params.id }
+      ]
+    }).populate('user');
+
+    if (!request) return res.status(404).json({ msg: 'Request not found' });
+    res.json(request);
+  } catch (err) {
+    console.error('Error fetching request by ID:', err.message);
+    res.status(500).json({ msg: 'Internal Server Error' });
+  }
+});
+
 
 module.exports = router;

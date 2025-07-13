@@ -4,16 +4,24 @@ import { useNavigate } from 'react-router-dom';
 
 export default function Profile() {
   const [user, setUser] = useState(null);
+  const [formData, setFormData] = useState({ name: '', department: '', location: '', email: '' });
   const [newImage, setNewImage] = useState(null);
   const [preview, setPreview] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [mode, setMode] = useState('choose');
+  const [editMode, setEditMode] = useState(false);
   const navigate = useNavigate();
 
   const fetchUser = () => {
     API.get('/auth/me')
       .then((res) => {
         setUser(res.data);
+        setFormData({
+          name: res.data.name || '',
+          department: res.data.department || '',
+          location: res.data.location || '',
+          email: res.data.email || ''
+        });
         if (res.data.image) {
           setPreview(`http://localhost:5000/uploads/${res.data.image}`);
         }
@@ -36,23 +44,36 @@ export default function Profile() {
 
   const handleUpload = async () => {
     if (!newImage) return;
-
-    const formData = new FormData();
-    formData.append('image', newImage);
+    const formDataImage = new FormData();
+    formDataImage.append('image', newImage);
     setUploading(true);
-
     try {
-      await API.patch('/auth/update-image', formData, {
+      await API.patch('/auth/update-image', formDataImage, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       alert('Image updated successfully!');
       fetchUser();
       setNewImage(null);
       setMode('choose');
-    } catch (err) {
+    } catch {
       alert('Failed to update image');
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleProfileUpdate = async () => {
+    try {
+      await API.patch('/auth/update-profile', formData);
+      alert('Profile updated successfully!');
+      setEditMode(false);
+      fetchUser();
+    } catch {
+      alert('Failed to update profile');
     }
   };
 
@@ -61,10 +82,14 @@ export default function Profile() {
   }
 
   return (
-    <div className="max-w-xl mx-auto mt-10 bg-white p-8 rounded-xl shadow-lg relative">
-      {/* Back to Dashboard button */}
+    <div className="max-w-2xl mx-auto mt-10 bg-white p-8 rounded-xl shadow-lg relative">
       <button
-        onClick={() => navigate('/dashboard')}
+        onClick={() => {
+          if (user.role === 'employee') navigate('/dashboard');
+          else if (user.role === 'manager') navigate('/manager');
+          else if (user.role === 'hod') navigate('/hod');
+          else if (user.role === 'admin') navigate('/admin');
+        }}
         className="absolute top-4 right-4 text-sm bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-1 px-3 rounded"
       >
         ← Back to Dashboard
@@ -81,11 +106,8 @@ export default function Profile() {
         </p>
 
         <div className="mt-6 w-full text-center">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Update Profile Image:
-          </label>
-
-          {mode === 'choose' && (
+          <label className="block text-sm font-medium text-gray-700 mb-2">Update Profile Image:</label>
+          {mode === 'choose' ? (
             <>
               <label
                 htmlFor="upload"
@@ -101,9 +123,7 @@ export default function Profile() {
                 className="hidden"
               />
             </>
-          )}
-
-          {mode === 'save' && (
+          ) : (
             <button
               onClick={handleUpload}
               disabled={uploading}
@@ -115,11 +135,46 @@ export default function Profile() {
         </div>
       </div>
 
-      <div className="mt-6 space-y-2 text-gray-800 text-sm">
-        <p><strong>Name:</strong> {user.name}</p>
-        <p><strong>Email:</strong> {user.email}</p>
-        <p><strong>Department:</strong> {user.department}</p>
-        <p><strong>Location:</strong> {user.location}</p>
+      <div className="mt-8 space-y-4 text-gray-800 text-sm">
+        {[
+          { label: 'Name', name: 'name' },
+          { label: 'Email', name: 'email' },
+          { label: 'Department', name: 'department' },
+          { label: 'Location', name: 'location' }
+        ].map((field) => (
+          <div className="flex items-center gap-4" key={field.name}>
+            <label className="w-32 font-medium">{field.label}:</label>
+            {editMode ? (
+              <input
+                type="text"
+                name={field.name}
+                value={formData[field.name]}
+                onChange={handleChange}
+                className="flex-1 border border-gray-300 rounded px-3 py-1"
+              />
+            ) : (
+              <p className="text-gray-900 font-semibold">{formData[field.name]}</p>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-6 text-center">
+        {editMode ? (
+          <button
+            onClick={handleProfileUpdate}
+            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+          >
+            💾 Save Changes
+          </button>
+        ) : (
+          <button
+            onClick={() => setEditMode(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            ✏️ Edit Profile
+          </button>
+        )}
       </div>
     </div>
   );
