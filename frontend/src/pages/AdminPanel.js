@@ -21,6 +21,10 @@ export default function AdminPanel() {
   const [filterName, setFilterName] = useState('');
   const [filterEmail, setFilterEmail] = useState('');
   const [filterLocation, setFilterLocation] = useState('');
+  const [isSearchTriggered, setIsSearchTriggered] = useState(false);
+
+ 
+
 
 
   const navigate = useNavigate();
@@ -71,10 +75,13 @@ export default function AdminPanel() {
   }, [searchId]);
 
   useEffect(() => {
-    if (searchResult) {
-      setSearchResult(null);
-    }
-  }, [filterDept, filterName, filterEmail, filterLocation]);
+  if (isSearchTriggered) {
+    setSearchResult(null);
+    setIsSearchTriggered(false);
+  }
+}, [filterDept, filterName, filterEmail, filterLocation]);
+
+
 
 
   const addQuestion = () => setQuestions([...questions, '']);
@@ -400,9 +407,8 @@ export default function AdminPanel() {
         {/* Training Tab */}
         {activeTab === 'training' && (
           <>
-            
+            {/* 🔍 Search + Filter Bar */}
             <div className="flex flex-col lg:flex-row justify-between gap-6 mb-8">
-            
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 flex-1">
                 <select
                   value={filterDept}
@@ -422,7 +428,6 @@ export default function AdminPanel() {
                   onChange={(e) => setFilterName(e.target.value)}
                   className="px-3 py-2 border border-gray-300 rounded w-full"
                 />
-
                 <input
                   type="text"
                   placeholder="Search by Email"
@@ -430,7 +435,6 @@ export default function AdminPanel() {
                   onChange={(e) => setFilterEmail(e.target.value)}
                   className="px-3 py-2 border border-gray-300 rounded w-full"
                 />
-
                 <input
                   type="text"
                   placeholder="Search by Location"
@@ -440,7 +444,7 @@ export default function AdminPanel() {
                 />
               </div>
 
-              {/* Right Search by ID */}
+              {/* Request ID Search */}
               <div className="flex gap-2 flex-col sm:flex-row items-center">
                 <input
                   type="text"
@@ -451,14 +455,25 @@ export default function AdminPanel() {
                 />
                 <button
                   onClick={async () => {
+                    if (!searchId.trim()) return;
                     try {
                       const res = await API.get(`/training-request/admin/${searchId}`);
                       setSearchResult(res.data);
+                      setIsSearchTriggered(true);
+                      // 🛑 Remove these lines:
+                      // setFilterDept('');
+                      // setFilterName('');
+                      // setFilterEmail('');
+                      // setFilterLocation('');
                     } catch {
                       alert('Request not found');
                       setSearchResult(null);
+                      setIsSearchTriggered(false);
                     }
                   }}
+
+
+
                   className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full sm:w-auto"
                 >
                   🔍 Search
@@ -466,7 +481,6 @@ export default function AdminPanel() {
               </div>
             </div>
 
-            {/* Title */}
             <h2 className="text-3xl font-bold text-gray-800 mb-6 flex items-center gap-2">
               📋 Employee Training Requests
             </h2>
@@ -474,14 +488,21 @@ export default function AdminPanel() {
             {/* Table */}
             {
               (() => {
-                const baseList = searchResult ? [searchResult] : trainingRequests;
+                const baseList = isSearchTriggered && searchResult ? [searchResult] : trainingRequests;
 
-                const filteredRequests = baseList.filter((r) =>
-                  (!filterDept || r.user?.department?.toLowerCase() === filterDept.toLowerCase()) &&
-                  (!filterName || r.user?.name?.toLowerCase().includes(filterName.toLowerCase())) &&
-                  (!filterEmail || r.user?.email?.toLowerCase().includes(filterEmail.toLowerCase())) &&
-                  (!filterLocation || r.user?.location?.toLowerCase().includes(filterLocation.toLowerCase()))
-                );
+
+
+                const filteredRequests = baseList.filter((r) => {
+                  if (isSearchTriggered && searchResult) return true;
+
+
+                  return (
+                    (!filterDept || r.user?.department?.toLowerCase() === filterDept.toLowerCase()) &&
+                    (!filterName || r.user?.name?.toLowerCase().includes(filterName.toLowerCase())) &&
+                    (!filterEmail || r.user?.email?.toLowerCase().includes(filterEmail.toLowerCase())) &&
+                    (!filterLocation || r.user?.location?.toLowerCase().includes(filterLocation.toLowerCase()))
+                  );
+                });
 
                 return filteredRequests.length === 0 ? (
                   <p className="text-gray-500 italic text-center">No training requests found.</p>
@@ -543,6 +564,7 @@ export default function AdminPanel() {
             }
           </>
         )}
+
 
 
         
