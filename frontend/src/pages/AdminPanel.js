@@ -390,9 +390,9 @@ export default function AdminPanel() {
         {/* Training Tab */}
         {activeTab === 'training' && (
           <>
-            {/* 🔍 Search & Filter Bar */}
+            
             <div className="flex flex-col lg:flex-row justify-between gap-6 mb-8">
-              {/* Left Filters */}
+            
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 flex-1">
                 <select
                   value={filterDept}
