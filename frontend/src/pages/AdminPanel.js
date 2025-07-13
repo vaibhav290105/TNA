@@ -109,22 +109,32 @@ export default function AdminPanel() {
   };
 
   const updateStatus = async (id, decision) => {
-    try {
-      await API.patch(`/training-request/admin-review/${id}`, { decision });
-      const updated = trainingRequests.map((r) =>
-        r._id === id
-          ? {
-              ...r,
-              status:
-                decision === 'approve' ? 'Approved_By_Admin' : 'Rejected_By_Admin',
-            }
-          : r
-      );
-      setTrainingRequests(updated);
-    } catch (err) {
-      alert('Failed to update status');
+  try {
+    await API.patch(`/training-request/admin-review/${id}`, { decision });
+
+    // Update trainingRequests list
+    const updated = trainingRequests.map((r) =>
+      r._id === id
+        ? {
+            ...r,
+            status: decision === 'approve' ? 'Approved_By_Admin' : 'Rejected_By_Admin',
+          }
+        : r
+    );
+    setTrainingRequests(updated);
+
+   
+    if (searchResult && searchResult._id === id) {
+      setSearchResult({
+        ...searchResult,
+        status: decision === 'approve' ? 'Approved_By_Admin' : 'Rejected_By_Admin',
+      });
     }
-  };
+
+  } catch (err) {
+    alert('Failed to update status');
+  }
+};
 
   const formatStatus = (status) => {
     switch (status) {
