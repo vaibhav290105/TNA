@@ -101,8 +101,8 @@ router.get('/users', auth, async (req, res) => {
     }
 
     const users = await User.find(filter)
-  .select('name email role department managers')
-  .populate('managers', 'name email department');
+  .select('name email role department manager')
+  .populate('manager', 'name email department');
     res.json(users);
   } catch (err) {
     console.error('Error fetching users:', err);
@@ -114,12 +114,12 @@ router.get('/users', auth, async (req, res) => {
 router.get('/me', auth, async (req, res) => {
   try {
     const user = await User.findById(req.user._id)
-      .populate('managers', 'name email'); 
+      .populate('manager', 'name email'); 
 
     let mappedEmployees = [];
 
     if (user.role === 'manager') {
-      mappedEmployees = await User.find({ managers: user._id }, 'name department email');
+      mappedEmployees = await User.find({ manager: user._id }, 'name department email');
     }
 
     res.json({ ...user.toObject(), mappedEmployees, imageUrl: user.image ? `http://localhost:5000/uploads/${user.image}` : null });
@@ -132,19 +132,20 @@ router.get('/me', auth, async (req, res) => {
 
 
 
-router.patch('/users/:id/assign-managers', auth, async (req, res) => {
-  if (!['admin', 'hod'].includes(req.user.role)) {
-    return res.status(403).send('Forbidden');
-  }
-
+router.patch('/users/:id/assign-manager', auth, async (req, res) => {
+  if (!['admin', 'hod'].includes(req.user.role)) return res.status(403).send('Forbidden');
   const { managerId } = req.body;
 
   try {
     const employee = await User.findById(req.params.id);
-    if (!employee.managers.includes(managerId)) {
-      employee.managers.push(managerId);
-      await employee.save();
+    
+    if (employee.manager) {
+      return res.status(400).send('Employee already assigned to a manager');
     }
+
+    employee.manager = managerId;
+    await employee.save();
+
     res.json({ msg: 'Manager assigned successfully' });
   } catch (err) {
     console.error(err);
@@ -153,22 +154,28 @@ router.patch('/users/:id/assign-managers', auth, async (req, res) => {
 });
 
 
-// Unmap employee from manager
-router.patch('/users/:id/unassign-managers', auth, async (req, res) => {
-  if (!['admin', 'hod'].includes(req.user.role)) return res.status(403).send('Forbidden');
 
-  const { managerId } = req.body;
+
+// Unmap employee from manager
+router.patch('/users/:id/unassign-manager', auth, async (req, res) => {
+  if (!['admin', 'hod'].includes(req.user.role)) {
+    return res.status(403).send('Forbidden');
+  }
 
   try {
     const employee = await User.findById(req.params.id);
-    employee.managers = employee.managers.filter(m => m.toString() !== managerId);
+    if (!employee) return res.status(404).send('Employee not found');
+
+    employee.manager = null; // remove manager assignment
     await employee.save();
+
     res.json({ msg: 'Manager unassigned successfully' });
   } catch (err) {
     console.error(err);
     res.status(500).send('Error unassigning manager');
   }
 });
+
 
 
 
@@ -236,7 +243,7 @@ router.get('/users/manager/:managerId', auth, async (req, res) => {
       return res.status(403).json({ msg: 'Forbidden' });
     }
 
-    const employees = await User.find({ managers: managerId })
+    const employees = await User.find({ manager: managerId })
       .select('name email department location');
 
     res.json(employees);
