@@ -26,6 +26,7 @@ export default function Login() {
       if (decoded.role === 'admin') navigate('/admin');
       else if (decoded.role === 'manager') navigate('/manager');
       else if (decoded.role === 'hod') navigate('/hod');
+      else if (decoded.role === 'hr') navigate('/hr');
       else navigate('/dashboard');
     } catch (err) {
       alert(err.response?.data?.msg || 'Login failed');

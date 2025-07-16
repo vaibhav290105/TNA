@@ -264,6 +264,47 @@ router.patch('/hr-review/:id', auth, async (req, res) => {
   res.json({ msg: `Training request ${status}` });
 });
 
+router.delete('/:id', async (req, res) => {
+  try {
+    const request = await TrainingNeed.findByIdAndDelete(req.params.id);
+    if (!request) return res.status(404).json({ message: 'Request not found' });
+    res.status(200).json({ message: 'Request deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error while deleting request' });
+  }
+});
+
+router.get('/:id', async (req, res) => {
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: 'Invalid request ID' });
+  }
+
+  try {
+    const request = await TrainingNeed.findById(id).populate('user');
+    if (!request) return res.status(404).json({ message: 'Request not found' });
+    res.json(request);
+  } catch (error) {
+    console.error("Error loading training request:", error);
+    res.status(500).json({ message: 'Internal Server Error', error });
+  }
+});
+
+router.patch('/:id', async (req, res) => {
+  try {
+    const request = await TrainingNeed.findByIdAndUpdate(
+      req.params.id,
+      { ...req.body },
+      { new: true }
+    );
+    if (!request) return res.status(404).json({ message: 'Request not found' });
+    res.json({ message: 'Request updated successfully', request });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error while updating request' });
+  }
+});
+
 
 
 module.exports = router;

@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../services/api';
+import { useLocation } from 'react-router-dom';
+
 
 export default function HODPanel() {
-  const [tab, setTab] = useState('review');
+  const location = useLocation();
+  const [tab, setTab] = useState(location.state?.defaultTab || 'review');
   const [requests, setRequests] = useState([]);
   const [formData, setFormData] = useState({
     generalSkills: '', toolsTraining: '', softSkills: '', confidenceLevel: '',
@@ -19,6 +22,7 @@ export default function HODPanel() {
   const [managers, setManagers] = useState([]);
   const [selectedManager, setSelectedManager] = useState(null);
   const navigate = useNavigate();
+  
 
   useEffect(() => {
     if (tab === 'review') fetchHODRequests();
@@ -71,20 +75,27 @@ export default function HODPanel() {
   };
 
   const handleMapping = async (employeeId, managerId) => {
-    try {
-        await API.patch(`/auth/users/${employeeId}/assign-managers`, { managerId });
-        alert('Mapping updated');
-
-        fetchUsersForMapping();              
-        fetchMappedEmployees(managerId);    
-    } catch {
-        alert('Mapping failed');
+  try {
+    const employee = employees.find(emp => emp._id === employeeId);
+    
+    if (employee.manager) {
+      alert(`${employee.name} is already assigned to a manager.`);
+      return;
     }
+
+    await API.patch(`/auth/users/${employeeId}/assign-manager`, { managerId });
+    alert('Mapping updated');
+    fetchUsersForMapping();
+    fetchMappedEmployees(managerId);
+  } catch {
+    alert('Mapping failed');
+  }
 };
+
 
 const handleUnmapping = async (employeeId) => {
   try {
-    await API.patch(`/auth/users/${employeeId}/unassign-managers`, { managerId: selectedManager._id });
+    await API.patch(`/auth/users/${employeeId}/unassign-manager`, { managerId: selectedManager._id });
     alert('Employee unmapped from manager');
 
     fetchUsersForMapping(); 
@@ -147,6 +158,40 @@ const handleUnmapping = async (employeeId) => {
     { label: 'Training frequency preferred:', name: 'trainingFrequency', type: 'select', options: ['', 'Monthly', 'Quarterly', 'Bi-annually', 'Annually'] },
   ];
 
+  const statusBadge = (status) => {
+  const base = 'inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold';
+
+  switch (status) {
+    case 'Pending_Manager':
+      return `${base} bg-yellow-100 text-yellow-700`;
+    case 'Approved_By_Manager':
+      return `${base} bg-blue-100 text-blue-700`;
+    case 'Rejected_By_Manager':
+      return `${base} bg-red-100 text-red-700`;
+    case 'Pending_HOD':
+      return `${base} bg-yellow-200 text-yellow-800`;
+    case 'Approved_By_HOD':
+      return `${base} bg-blue-200 text-blue-800`;
+    case 'Rejected_By_HOD':
+      return `${base} bg-red-200 text-red-800`;
+    case 'Pending_HR':
+      return `${base} bg-yellow-300 text-yellow-900`;
+    case 'Approved_By_HR':
+      return `${base} bg-blue-300 text-blue-900`;
+    case 'Rejected_By_HR':
+      return `${base} bg-red-300 text-red-900`;
+    case 'Pending_Admin':
+      return `${base} bg-yellow-400 text-yellow-900`;
+    case 'Approved_By_Admin':
+      return `${base} bg-green-100 text-green-700`;
+    case 'Rejected_By_Admin':
+      return `${base} bg-red-100 text-red-700`;
+    default:
+      return `${base} bg-gray-100 text-gray-700`;
+  }
+};
+
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-gray-800 text-white px-6 py-4 flex justify-between items-center shadow-md">
@@ -203,11 +248,20 @@ const handleUnmapping = async (employeeId) => {
                 {employees.map(emp => (
                   <div key={emp._id} className="flex justify-between items-center mb-3">
                     <span>{emp.name}</span>
-                    <button onClick={() => handleMapping(emp._id, selectedManager?._id)} className="bg-green-500 text-white px-4 py-1 rounded" disabled={!selectedManager}>Map</button>
+                    {emp.manager ? (
+                      <span className="text-xs text-gray-400 italic">Already Assigned</span>
+                    ) : (
+                      <button
+                        onClick={() => handleMapping(emp._id, selectedManager?._id)}
+                        className="bg-green-500 text-white px-4 py-1 rounded"
+                        disabled={!selectedManager}
+                      >
+                        Map
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
-
               <div className="bg-white p-4 rounded shadow">
                 <h3 className="text-xl font-bold mb-4 text-center">
                     {selectedManager ? `Mapped to ${selectedManager.name}` : 'Mapped to Selected Manager'}
@@ -334,22 +388,61 @@ const handleUnmapping = async (employeeId) => {
             {requests.length === 0 ? (
               <p className="text-center text-gray-500">No requests submitted yet.</p>
             ) : (
-              requests.map(req => (
-                <div key={req._id} className="bg-white p-4 rounded shadow mb-5 border">
-                  <p><strong>Status:</strong> {req.status}</p>
-                  <p><strong>Submitted On:</strong> {new Date(req.createdAt).toLocaleDateString()}</p>
-                  <p><strong>Request No:</strong> {req.requestNumber}</p>
-                  <button
-                    onClick={() => { setSelectedRequest(req); setShowModal(true); }}
-                    className="text-blue-600 mt-2 hover:underline flex items-center gap-1"
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {requests.map((req) => (
+                  <div
+                    key={req._id}
+                    className="bg-white shadow-lg rounded-xl border p-6 flex flex-col justify-between"
                   >
-                    📄 View Full Details
-                  </button>
-                </div>
-              ))
+                    <div>
+                      <p><strong>Name:</strong> {req.user?.name || 'You'}</p>
+                      <p><strong>Request No:</strong> {req.requestNumber}</p>
+                      <p><strong>Department:</strong> {req.user?.department}</p>
+                      <p><strong>Submitted On:</strong> {new Date(req.createdAt).toLocaleDateString()}</p>
+                      <p className="mb-3">
+                        <strong>Status:</strong>
+                        <span className={`ml-2 ${statusBadge(req.status)}`}>
+                          {req.status.replace(/_/g, ' ')}
+                        </span>
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-3 mt-4">
+                      <button
+                        onClick={() => {setSelectedRequest(req);setShowModal(true);}}
+                        className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-md"
+                      >
+                        👁️ View
+                      </button>
+                      <button
+                        onClick={() => navigate(`/training-form/${req._id}`)}
+                        className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md"
+                      >
+                        ✏️ Edit
+                      </button>
+                      <button
+                        onClick={async () => {
+                          if (window.confirm('Are you sure you want to delete this request?')) {
+                            try {
+                              await API.delete(`/training-request/${req._id}`);
+                              setRequests(prev => prev.filter(r => r._id !== req._id));
+                            } catch {
+                              alert('Failed to delete request');
+                            }
+                          }
+                        }}
+                        className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md"
+                      >
+                        🗑️ Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}
+
+
 
       </div>
       {showModal && selectedRequest && (
@@ -357,28 +450,38 @@ const handleUnmapping = async (employeeId) => {
             <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
               <h3 className="text-2xl font-bold mb-4 text-center text-gray-800">📝 Training Request Details</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
+                <p><strong>Employee:</strong> {selectedRequest.user?.name}</p>
+                <p><strong>Department:</strong> {selectedRequest.user?.department}</p>
+                <p><strong>Location:</strong> {selectedRequest.user?.location}</p>
+                <p><strong>Request No:</strong> {selectedRequest.requestNumber}</p>
                 <p><strong>Status:</strong> {selectedRequest.status}</p>
-                <p><strong>Submitted On:</strong> {new Date(selectedRequest.createdAt).toLocaleDateString()}</p>
-                <p><strong>General Skills:</strong> {selectedRequest.generalSkills}</p>
-                <p><strong>Tools Training:</strong> {selectedRequest.toolsTraining}</p>
-                <p><strong>Soft Skills:</strong> {selectedRequest.softSkills}</p>
-                <p><strong>Confidence Level:</strong> {selectedRequest.confidenceLevel}</p>
-                <p><strong>Technical Skills:</strong> {selectedRequest.technicalSkills}</p>
-                <p><strong>Data Training:</strong> {selectedRequest.dataTraining}</p>
-                <p><strong>Role Challenges:</strong> {selectedRequest.roleChallenges}</p>
-                <p><strong>Efficiency Training:</strong> {selectedRequest.efficiencyTraining}</p>
-                <p><strong>Certifications:</strong> {selectedRequest.certifications}</p>
-                <p><strong>Career Goals:</strong> {selectedRequest.careerGoals}</p>
-                <p><strong>Career Training:</strong> {selectedRequest.careerTraining}</p>
-                <p><strong>Training Format:</strong> {selectedRequest.trainingFormat}</p>
-                <p><strong>Training Duration:</strong> {selectedRequest.trainingDuration}</p>
-                <p><strong>Learning Preference:</strong> {selectedRequest.learningPreference}</p>
-                <p><strong>Past Training:</strong> {selectedRequest.pastTraining}</p>
-                <p><strong>Past Training Feedback:</strong> {selectedRequest.pastTrainingFeedback}</p>
-                <p><strong>Training Improvement:</strong> {selectedRequest.trainingImprovement}</p>
-                <p><strong>Area Need:</strong> {selectedRequest.areaNeed}</p>
-                <p><strong>Training Frequency:</strong> {selectedRequest.trainingFrequency}</p>
+                <p><strong>Date Submitted:</strong> {new Date(selectedRequest.createdAt).toLocaleDateString()}</p>
+
+                {[
+                  ['Skills to Improve', 'generalSkills'],
+                  ['Tools for Training', 'toolsTraining'],
+                  ['Soft Skills Training', 'softSkills'],
+                  ['Tool Confidence Level', 'confidenceLevel'],
+                  ['Technical Skills to Learn', 'technicalSkills'],
+                  ['Data/Reporting Training', 'dataTraining'],
+                  ['Current Role Challenges', 'roleChallenges'],
+                  ['Job Efficiency Training', 'efficiencyTraining'],
+                  ['Interested Certifications', 'certifications'],
+                  ['2-Year Career Goal', 'careerGoals'],
+                  ['Training for Career Goal', 'careerTraining'],
+                  ['Preferred Format', 'trainingFormat'],
+                  ['Preferred Duration', 'trainingDuration'],
+                  ['Learning Style', 'learningPreference'],
+                  ['Past Trainings', 'pastTraining'],
+                  ['Feedback on Past Trainings', 'pastTrainingFeedback'],
+                  ['Suggested Improvements', 'trainingImprovement'],
+                  ['Urgent Training Areas', 'areaNeed'],
+                  ['Training Frequency', 'trainingFrequency']
+                ].map(([label, key]) => (
+                  <p key={key}><strong>{label}</strong> {selectedRequest[key] || '—'}</p>
+                ))}
               </div>
+
               <div className="text-center mt-6">
                 <button onClick={() => setShowModal(false)} className="bg-red-500 text-white px-6 py-2 rounded hover:bg-red-600">
                   Close

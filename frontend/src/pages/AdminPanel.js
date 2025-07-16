@@ -34,11 +34,11 @@ export default function AdminPanel() {
       .then((res) => {
         const nonAdmins = res.data.filter((user) => user.role !== 'admin');
         setUsers(nonAdmins);
-        console.log('Fetched users:', nonAdmins);
+        
       })
       .catch(() => alert('Failed to fetch users'));
   };
-
+  
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -173,7 +173,7 @@ export default function AdminPanel() {
   }
 
   try {
-    await API.patch(`/auth/users/${employeeId}/unassign-managers`, {
+    await API.patch(`/auth/users/${employeeId}/unassign-manager`, {
       managerId: selectedManager,
     });
     alert('Unmapped successfully');
@@ -195,7 +195,7 @@ export default function AdminPanel() {
     }
 
     try {
-      const res = await API.patch(`/auth/users/${employeeId}/assign-managers`, {
+      const res = await API.patch(`/auth/users/${employeeId}/assign-manager`, {
         managerId: selectedManager,
       });
       alert('Mapped successfully');
@@ -292,20 +292,36 @@ export default function AdminPanel() {
                 </div>
 
                 {/* Employees */}
+                {/* Employees */}
                 <div className="border rounded p-3 bg-white">
                   <h3 className="text-lg font-semibold mb-2 text-center">Employees</h3>
-                  {users.filter(u => u.department === managerMapDept && u.role === 'employee').map(employee => (
-                    <div key={employee._id} className="flex justify-between items-center py-1">
-                      <span>{employee.name}</span>
-                      <button
-                        className="bg-green-500 text-white px-2 py-1 text-xs rounded"
-                        onClick={() => handleMap(employee._id)}
-                      >
-                        Map
-                      </button>
-                    </div>
-                  ))}
+                  {users
+                    .filter(u => u.department === managerMapDept && u.role === 'employee')
+                    .map(employee => {
+                      const assignedManager = users.find(m => m._id === employee.manager);
+                      return (
+                        <div key={employee._id} className="flex justify-between items-center py-1">
+                          <span>
+                            {employee.name}
+                            {assignedManager && (
+                              <span className="text-xs text-gray-500 ml-2">(Assigned to {assignedManager.name})</span>
+                            )}
+                          </span>
+                          {!employee.manager ? (
+                            <button
+                              className="bg-green-500 text-white px-2 py-1 text-xs rounded"
+                              onClick={() => handleMap(employee._id)}
+                            >
+                              Map
+                            </button>
+                          ) : (
+                            <span className="text-xs text-gray-400 italic">Assigned</span>
+                          )}
+                        </div>
+                      );
+                    })}
                 </div>
+
 
                 {/* Mapped Employees */}
                 <div className="border rounded p-3 bg-white">
@@ -407,7 +423,7 @@ export default function AdminPanel() {
         {/* Training Tab */}
         {activeTab === 'training' && (
           <>
-            {/* 🔍 Search + Filter Bar */}
+           
             <div className="flex flex-col lg:flex-row justify-between gap-6 mb-8">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 flex-1">
                 <select
@@ -460,11 +476,7 @@ export default function AdminPanel() {
                       const res = await API.get(`/training-request/admin/${searchId}`);
                       setSearchResult(res.data);
                       setIsSearchTriggered(true);
-                      // 🛑 Remove these lines:
-                      // setFilterDept('');
-                      // setFilterName('');
-                      // setFilterEmail('');
-                      // setFilterLocation('');
+                      
                     } catch {
                       alert('Request not found');
                       setSearchResult(null);
@@ -572,29 +584,62 @@ export default function AdminPanel() {
       {selectedRequest && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
           <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-2xl font-bold mb-4 text-center text-gray-800">📝 Training Request Details</h3>
+            <h3 className="text-2xl font-bold mb-4 text-center text-gray-800">
+              📝 Training Request Details
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
-              <p><strong>Employee:</strong> {selectedRequest.user?.name}</p>
-              <p><strong>Department:</strong> {selectedRequest.user?.department}</p>
-              <p><strong>Location:</strong> {selectedRequest.user?.location}</p>
-              <p><strong>Status:</strong> {formatStatus(selectedRequest.status).label}</p>
-              <p><strong>General Skills:</strong> {selectedRequest.generalSkills}</p>
-              <p><strong>Tools Training:</strong> {selectedRequest.toolsTraining}</p>
-              <p><strong>Soft Skills:</strong> {selectedRequest.softSkills}</p>
-              <p><strong>Technical Skills:</strong> {selectedRequest.technicalSkills}</p>
-              <p><strong>Data Training:</strong> {selectedRequest.dataTraining}</p>
-              <p><strong>Role Challenges:</strong> {selectedRequest.roleChallenges}</p>
-              <p><strong>Efficiency Training:</strong> {selectedRequest.efficiencyTraining}</p>
-              <p><strong>Certifications:</strong> {selectedRequest.certifications}</p>
-              <p><strong>Career Goals:</strong> {selectedRequest.careerGoals}</p>
-              <p><strong>Training Format:</strong> {selectedRequest.trainingFormat}</p>
-              <p><strong>Duration:</strong> {selectedRequest.trainingDuration}</p>
-              <p><strong>Learning Preference:</strong> {selectedRequest.learningPreference}</p>
-              <p><strong>Past Training:</strong> {selectedRequest.pastTraining}</p>
-              <p><strong>Feedback:</strong> {selectedRequest.pastTrainingFeedback}</p>
-              <p><strong>Improvement:</strong> {selectedRequest.trainingImprovement}</p>
-              <p><strong>Area Needed:</strong> {selectedRequest.areaNeed}</p>
-              <p><strong>Frequency:</strong> {selectedRequest.trainingFrequency}</p>
+              {/* Meta Information (static fields) */}
+              <p>
+                <strong>Employee:</strong> {selectedRequest.user?.name}
+              </p>
+              <p>
+                <strong>Department:</strong> {selectedRequest.user?.department}
+              </p>
+              <p>
+                <strong>Location:</strong> {selectedRequest.user?.location}
+              </p>
+              <p>
+                <strong>Status:</strong> {formatStatus(selectedRequest.status).label}
+              </p>
+              <p>
+                <strong>Request No:</strong> {selectedRequest.requestNumber}
+              </p>
+              <p>
+                <strong>Date Submitted:</strong> {new Date(selectedRequest.createdAt).toLocaleDateString()}
+              </p>
+              
+              {/* Detailed fields using explanatory labels */}
+              {(() => {
+                // Mapping of field keys to explanatory labels
+                const detailLabels = {
+                  generalSkills: "Skills to Improve",
+                  toolsTraining: "Tools for Training",
+                  softSkills: "Soft Skills Training",
+                  confidenceLevel: "Tool Confidence Level",
+                  technicalSkills: "Technical Skills to Learn",
+                  dataTraining: "Data/Reporting Training",
+                  roleChallenges: "Current Role Challenges",
+                  efficiencyTraining: "Job Efficiency Training",
+                  certifications: "Interested Certifications",
+                  careerGoals: "2-Year Career Goal",
+                  careerTraining: "Training for Career Goal",
+                  trainingFormat: "Preferred Format",
+                  trainingDuration: "Preferred Duration",
+                  learningPreference: "Learning Style",
+                  pastTraining: "Past Trainings",
+                  pastTrainingFeedback: "Feedback on Past Trainings",
+                  trainingImprovement: "Suggested Improvements",
+                  areaNeed: "Urgent Training Areas",
+                  trainingFrequency: "Training Frequency"
+                };
+
+                
+                return Object.entries(detailLabels).map(([key, label]) => (
+                  <p key={key}>
+                    <strong>{label}</strong> {selectedRequest[key] || '—'}
+                  </p>
+                ));
+              })()}
             </div>
             <div className="text-right mt-6">
               <button
@@ -607,6 +652,7 @@ export default function AdminPanel() {
           </div>
         </div>
       )}
+
     </div>
   );
 }

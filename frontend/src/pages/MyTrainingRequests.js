@@ -12,6 +12,19 @@ export default function MyTrainingRequests() {
       .catch(() => alert('Failed to fetch your training requests'));
   }, []);
 
+  const handleDelete = async (id) => {
+    if (window.confirm('Are you sure you want to delete this request?')) {
+      try {
+        await API.delete(`/training-request/${id}`);
+        setMyRequests(myRequests.filter(req => req._id !== id));
+        alert('Request deleted successfully');
+      } catch (err) {
+        alert('Failed to delete request');
+      }
+    }
+  };
+
+
   const statusBadge = (status) => {
     const base = 'inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold';
     switch (status) {
@@ -67,12 +80,17 @@ export default function MyTrainingRequests() {
                   <td className="text-sm text-gray-500">
                     <strong>🆔:</strong> {req.requestNumber}
                   </td>
-                  <td className="px-5 py-3 text-center">
-                    <button
-                      onClick={() => setSelectedRequest(req)}
-                      className="text-blue-600 hover:underline hover:text-blue-800 font-medium"
-                    >
-                      View Details
+                  <td className="px-5 py-3 text-center space-x-4">
+                    <button onClick={() => setSelectedRequest(req)} title="View">
+                      <span role="img" aria-label="view" className="text-blue-600 text-lg hover:scale-110 transition-transform">👁️‍🗨️</span>
+                    </button>
+
+                    <button onClick={() => navigate(`/training-form/${req._id}`)} title="Edit">
+                      <span role="img" aria-label="edit" className="text-green-600 text-lg hover:scale-110 transition-transform">✏️</span>
+                    </button>
+
+                    <button onClick={() => handleDelete(req._id)} title="Delete">
+                      <span role="img" aria-label="delete" className="text-red-600 text-lg hover:scale-110 transition-transform">🗑️</span>
                     </button>
                   </td>
                 </tr>
@@ -98,26 +116,34 @@ export default function MyTrainingRequests() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
               <p><strong>Status:</strong> {selectedRequest.status.replace(/_/g, ' ')}</p>
-              <p><strong>General Skills:</strong> {selectedRequest.generalSkills}</p>
-              <p><strong>Tools Training:</strong> {selectedRequest.toolsTraining}</p>
-              <p><strong>Soft Skills:</strong> {selectedRequest.softSkills}</p>
-              <p><strong>Confidence Level:</strong> {selectedRequest.confidenceLevel}</p>
-              <p><strong>Technical Skills:</strong> {selectedRequest.technicalSkills}</p>
-              <p><strong>Data Training:</strong> {selectedRequest.dataTraining}</p>
-              <p><strong>Role Challenges:</strong> {selectedRequest.roleChallenges}</p>
-              <p><strong>Efficiency Training:</strong> {selectedRequest.efficiencyTraining}</p>
-              <p><strong>Certifications:</strong> {selectedRequest.certifications}</p>
-              <p><strong>Career Goals:</strong> {selectedRequest.careerGoals}</p>
-              <p><strong>Career Training:</strong> {selectedRequest.careerTraining}</p>
-              <p><strong>Training Format:</strong> {selectedRequest.trainingFormat}</p>
-              <p><strong>Training Duration:</strong> {selectedRequest.trainingDuration}</p>
-              <p><strong>Learning Preference:</strong> {selectedRequest.learningPreference}</p>
-              <p><strong>Past Training:</strong> {selectedRequest.pastTraining}</p>
-              <p><strong>Feedback:</strong> {selectedRequest.pastTrainingFeedback}</p>
-              <p><strong>Improvement Suggestions:</strong> {selectedRequest.trainingImprovement}</p>
-              <p><strong>Area Needed:</strong> {selectedRequest.areaNeed}</p>
-              <p><strong>Frequency:</strong> {selectedRequest.trainingFrequency}</p>
+              <p><strong>Date Submitted:</strong> {new Date(selectedRequest.createdAt).toLocaleDateString()}</p>
+              <p><strong>Request No:</strong> {selectedRequest.requestNumber}</p>
+
+              {[
+                ['Skills to Improve', 'generalSkills'],
+                ['Tools for Training', 'toolsTraining'],
+                ['Soft Skills Training', 'softSkills'],
+                ['Tool Confidence Level', 'confidenceLevel'],
+                ['Technical Skills to Learn', 'technicalSkills'],
+                ['Data/Reporting Training', 'dataTraining'],
+                ['Current Role Challenges', 'roleChallenges'],
+                ['Job Efficiency Training', 'efficiencyTraining'],
+                ['Interested Certifications', 'certifications'],
+                ['2-Year Career Goal', 'careerGoals'],
+                ['Training for Career Goal', 'careerTraining'],
+                ['Preferred Format', 'trainingFormat'],
+                ['Preferred Duration', 'trainingDuration'],
+                ['Learning Style', 'learningPreference'],
+                ['Past Trainings', 'pastTraining'],
+                ['Feedback on Past Trainings', 'pastTrainingFeedback'],
+                ['Suggested Improvements', 'trainingImprovement'],
+                ['Urgent Training Areas', 'areaNeed'],
+                ['Training Frequency', 'trainingFrequency']
+              ].map(([label, key]) => (
+                <p key={key}><strong>{label}:</strong> {selectedRequest[key] || '—'}</p>
+              ))}
             </div>
+
           </div>
         </div>
       )}

@@ -58,20 +58,17 @@ export default function Dashboard() {
           <p className="text-gray-600 mb-1">📂 Department: <strong>{department}</strong></p>
           <p className="text-gray-600 mb-1">🧑‍💻 Role: <strong>{role}</strong></p>
 
-          {user?.managers && user.managers.length > 0 ? (
-          <div className="mt-4 p-4 border rounded-lg bg-gray-50">
-            <h3 className="font-semibold text-lg text-gray-800 mb-2">👨‍💼 Assigned Managers</h3>
-            <ul className="list-disc pl-6 text-gray-700">
-              {user.managers.map((manager) => (
-                <li key={manager._id}>
-                  <span className="font-semibold">{manager.name}</span> – {manager.email}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : (
-          <p className="mt-4 text-sm italic text-gray-500">No managers assigned yet.</p>
-        )}
+          {user?.manager ? (
+            <div className="mt-4 p-4 border rounded-lg bg-gray-50">
+              <h3 className="font-semibold text-lg text-gray-800 mb-2">👨‍💼 Assigned Manager</h3>
+              <p className="text-gray-700">
+                <span className="font-semibold">{user.manager.name}</span> – {user.manager.email}
+              </p>
+            </div>
+          ) : (
+            <p className="mt-4 text-sm italic text-gray-500">No manager assigned yet.</p>
+          )}
+
 
         </div>
 

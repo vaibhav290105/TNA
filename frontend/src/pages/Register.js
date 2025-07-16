@@ -111,6 +111,7 @@ export default function Register() {
               <option value="employee">Employee</option>
               <option value="manager">Manager</option>
               <option value="hod">HOD</option>
+              <option value="hr">HR</option>
               <option value="admin">Admin</option>
             </select>
 
