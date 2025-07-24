@@ -16,6 +16,12 @@ export default function EmployeeNavbar({ fetchSurveys, onLogout }) {
       {/* Navigation Buttons */}
       <div className="flex gap-4 items-center">
         <Link
+            to="/my-feedback-responses"
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+        >
+          📄 View My Feedback Responses
+        </Link>
+        <Link
           to="/training-request"
           className="bg-green-500 hover:bg-green-600 px-4 py-2 rounded"
         >

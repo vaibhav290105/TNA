@@ -3,12 +3,30 @@ import API from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
 
+
 export default function HRPanel() {
   const location = useLocation();
   const [tab, setTab] = useState(location.state?.defaultTab || 'review');
   const [requests, setRequests] = useState([]);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [pendingCount, setPendingCount] = useState(0);
+  
+  useEffect(() => {
+    fetchAssignedFeedbacks();
+  }, []);
+
+  const fetchAssignedFeedbacks = async () => {
+    try {
+      const res = await API.get('/survey/assigned-with-status');
+      setFeedbacks(res.data);
+      const pending = res.data.filter(s => s.status === 'Pending');
+      setPendingCount(pending.length);
+    } catch (err) {
+      console.error('Failed to fetch assigned feedback forms');
+    }
+  };
 
   const [formData, setFormData] = useState({
     generalSkills: '',
@@ -134,7 +152,7 @@ const dropdownOptions = {
     try {
       await API.delete(`/training-request/${id}`);
       alert('Request deleted successfully');
-      fetchMyRequests(); // Refresh the list
+      fetchMyRequests(); 
     } catch {
       alert('Failed to delete request');
     }
@@ -150,7 +168,43 @@ const dropdownOptions = {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-indigo-700 text-white p-4 flex justify-between">
         <h1 className="text-xl font-bold">HR Dashboard</h1>
+        <div className="relative">
+          <button
+            onClick={() => {
+              if (feedbacks.length === 0) {
+                alert('No feedback forms assigned.');
+                return;
+              }
+
+              const pendingForms = feedbacks.filter(f => f.status === 'Pending');
+
+              
+              if (pendingForms.length === 1) {
+                navigate(`/feedback`);
+              } else {
+                // Optional: Navigate to first pending or show a modal list
+                navigate(`/feedback`);
+              }
+            }}
+            className="px-4 py-2 rounded bg-yellow-100 text-yellow-800 border border-yellow-300 hover:bg-yellow-200"
+          >
+            📝 Feedback Form
+          </button>
+          {pendingCount > 0 && (
+            <span className="absolute -top-2 -left-2 bg-red-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+              {pendingCount}
+            </span>
+          )}
+        </div>
+        <button
+          onClick={() => navigate('/my-feedback-responses')}
+          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+        >
+          📄 View My Feedback Responses
+        </button>
         <button onClick={logout} className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded">Logout</button>
+        
+
       </header>
 
       <div className="max-w-6xl mx-auto p-6">

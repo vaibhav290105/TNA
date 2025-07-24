@@ -291,8 +291,7 @@ export default function AdminPanel() {
                   ))}
                 </div>
 
-                {/* Employees */}
-                {/* Employees */}
+                
                 <div className="border rounded p-3 bg-white">
                   <h3 className="text-lg font-semibold mb-2 text-center">Employees</h3>
                   {users
@@ -323,7 +322,7 @@ export default function AdminPanel() {
                 </div>
 
 
-                {/* Mapped Employees */}
+               
                 <div className="border rounded p-3 bg-white">
                   <h3 className="text-xl font-bold mb-4 text-center">
                     {selectedManager
@@ -420,7 +419,7 @@ export default function AdminPanel() {
           </>
         )}
 
-        {/* Training Tab */}
+        
         {activeTab === 'training' && (
           <>
            
@@ -460,7 +459,7 @@ export default function AdminPanel() {
                 />
               </div>
 
-              {/* Request ID Search */}
+             
               <div className="flex gap-2 flex-col sm:flex-row items-center">
                 <input
                   type="text"
@@ -497,7 +496,7 @@ export default function AdminPanel() {
               📋 Employee Training Requests
             </h2>
 
-            {/* Table */}
+           
             {
               (() => {
                 const baseList = isSearchTriggered && searchResult ? [searchResult] : trainingRequests;
@@ -608,9 +607,9 @@ export default function AdminPanel() {
                 <strong>Date Submitted:</strong> {new Date(selectedRequest.createdAt).toLocaleDateString()}
               </p>
               
-              {/* Detailed fields using explanatory labels */}
+             
               {(() => {
-                // Mapping of field keys to explanatory labels
+              
                 const detailLabels = {
                   generalSkills: "Skills to Improve",
                   toolsTraining: "Tools for Training",

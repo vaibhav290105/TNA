@@ -21,6 +21,8 @@ export default function HODPanel() {
   const [employees, setEmployees] = useState([]);
   const [managers, setManagers] = useState([]);
   const [selectedManager, setSelectedManager] = useState(null);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [feedbacks, setFeedbacks] = useState([]);
   const navigate = useNavigate();
   
 
@@ -29,6 +31,20 @@ export default function HODPanel() {
     if (tab === 'my') fetchMyRequests();
     if (tab === 'map') fetchUsersForMapping();
   }, [tab]);
+  useEffect(() => {
+    fetchAssignedFeedbacks();
+  }, []);
+
+  const fetchAssignedFeedbacks = async () => {
+    try {
+      const res = await API.get('/survey/assigned-with-status');
+      setFeedbacks(res.data);
+      const pending = res.data.filter(s => s.status === 'Pending');
+      setPendingCount(pending.length);
+    } catch (err) {
+      console.error('Failed to fetch assigned feedback forms');
+    }
+  };
 
   const fetchHODRequests = () => {
     API.get('/training-request/hod-review')
@@ -203,6 +219,41 @@ const handleUnmapping = async (employeeId) => {
             <p className="text-sm text-gray-300">Indraprastha Gas Limited</p>
           </div>
         </div>
+
+        <div className="relative">
+          <button
+            onClick={() => {
+              if (feedbacks.length === 0) {
+                alert('No feedback forms assigned.');
+                return;
+              }
+
+              const pendingForms = feedbacks.filter(f => f.status === 'Pending');
+
+              
+              if (pendingForms.length === 1) {
+                navigate(`/feedback`);
+              } else {
+                // Optional: Navigate to first pending or show a modal list
+                navigate(`/feedback`);
+              }
+            }}
+            className="px-4 py-2 rounded bg-yellow-100 text-yellow-800 border border-yellow-300 hover:bg-yellow-200"
+          >
+            📝 Feedback Form
+          </button>
+          {pendingCount > 0 && (
+            <span className="absolute -top-2 -left-2 bg-red-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+              {pendingCount}
+            </span>
+          )}
+        </div>
+        <button
+            onClick={() => navigate('/my-feedback-responses')}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+        >
+          📄 View My Feedback Responses
+        </button>
 
         <div className="flex items-center gap-4">
           <button
