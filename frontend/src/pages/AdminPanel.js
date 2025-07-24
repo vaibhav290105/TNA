@@ -22,8 +22,8 @@ export default function AdminPanel() {
   const [filterEmail, setFilterEmail] = useState('');
   const [filterLocation, setFilterLocation] = useState('');
   const [isSearchTriggered, setIsSearchTriggered] = useState(false);
-
- 
+  const [surveySearch, setSurveySearch] = useState('');
+  const [filterRole, setFilterRole] = useState('');
 
 
 
@@ -358,6 +358,8 @@ export default function AdminPanel() {
             {success && (
               <div className="bg-green-100 text-green-700 px-4 py-2 rounded mb-4 text-center">{success}</div>
             )}
+
+            {/* Form Creation */}
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -378,18 +380,56 @@ export default function AdminPanel() {
             </button>
 
             <h3 className="text-lg font-semibold mb-2">Assign to Users by Role & Department:</h3>
-            <div className="max-h-40 overflow-y-auto border p-2 mb-6 rounded">
-              {users.map((user) => (
-                <label key={user._id} className="block mb-1">
-                  <input
-                    type="checkbox"
-                    checked={selectedUsers.includes(user._id)}
-                    onChange={() => toggleUser(user._id)}
-                    className="mr-2"
-                  />
-                  {user.name} — {user.role} ({user.department})
-                </label>
-              ))}
+
+            {/* Filter Controls */}
+            <div className="flex gap-4 mb-4">
+              <select
+                value={filterDept}
+                onChange={(e) => setFilterDept(e.target.value)}
+                className="p-2 border rounded w-1/2"
+              >
+                <option value="">All Departments</option>
+                {[...new Set(users.map(u => u.department))].map(dep => (
+                  <option key={dep} value={dep}>{dep}</option>
+                ))}
+              </select>
+              <select
+                value={filterRole}
+                onChange={(e) => setFilterRole(e.target.value)}
+                className="p-2 border rounded w-1/2"
+              >
+                <option value="">All Roles</option>
+                {[...new Set(users.map(u => u.role))].map(role => (
+                  <option key={role} value={role}>{role}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Grouped Checkbox List */}
+            <div className="max-h-40 overflow-y-auto border p-2 mb-6 rounded bg-white">
+              {[...new Set(users.map(u => u.department))]
+                .filter(dep => !filterDept || dep === filterDept)
+                .map(dep => (
+                  <div key={dep} className="mb-2">
+                    <h4 className="font-semibold text-gray-700 mb-1">{dep}</h4>
+                    {users
+                      .filter(user =>
+                        user.department === dep &&
+                        (!filterRole || user.role === filterRole)
+                      )
+                      .map(user => (
+                        <label key={user._id} className="block ml-4 mb-1">
+                          <input
+                            type="checkbox"
+                            checked={selectedUsers.includes(user._id)}
+                            onChange={() => toggleUser(user._id)}
+                            className="mr-2"
+                          />
+                          {user.name} — {user.role}
+                        </label>
+                      ))}
+                  </div>
+                ))}
             </div>
 
             <button
@@ -401,23 +441,41 @@ export default function AdminPanel() {
 
             <hr className="my-8" />
             <h2 className="text-2xl font-semibold mb-4">📄 Created Feedback Forms</h2>
+
+            {/* Survey Title Filter */}
+            <input
+              type="text"
+              placeholder="Search feedback forms by title..."
+              value={surveySearch}
+              onChange={(e) => setSurveySearch(e.target.value)}
+              className="border px-3 py-2 rounded mb-4 w-full sm:w-1/2"
+            />
+
             <ul className="space-y-3">
-              {surveys.map((survey) => (
-                <li key={survey._id} className="border p-3 rounded flex justify-between items-center bg-white">
-                  <div>
-                    <div className="text-lg font-medium text-gray-800">{survey.title}</div>
-                    <div className="text-sm text-gray-600">
-                      Assigned: {survey.assignedTo?.length || 0} | Responses: {survey.responseCount || 0}
+              {surveys
+                .filter((survey) =>
+                  survey.title.toLowerCase().includes(surveySearch.toLowerCase())
+                )
+                .map((survey) => (
+                  <li
+                    key={survey._id}
+                    className="border p-3 rounded flex justify-between items-center bg-white"
+                  >
+                    <div>
+                      <div className="text-lg font-medium text-gray-800">{survey.title}</div>
+                      <div className="text-sm text-gray-600">
+                        Assigned: {survey.assignedTo?.length || 0} | Responses: {survey.responseCount || 0}
+                      </div>
                     </div>
-                  </div>
-                  <Link to={`/survey/${survey._id}/responses`} className="text-sm text-blue-600 hover:underline">
-                    View Responses
-                  </Link>
-                </li>
-              ))}
+                    <Link to={`/survey/${survey._id}/responses`} className="text-sm text-blue-600 hover:underline">
+                      View Responses
+                    </Link>
+                  </li>
+                ))}
             </ul>
           </>
         )}
+
 
         
         {activeTab === 'training' && (
