@@ -123,10 +123,21 @@ export default function Register() {
               className="w-full px-4 py-2 border rounded-md bg-white focus:ring-2 focus:ring-blue-400"
             >
               <option value="">Select Department</option>
-              <option value="HR">HR</option>
               <option value="Finance">Finance</option>
               <option value="IT">IT</option>
               <option value="Operations">Operations</option>
+              <option value="Marketing">Marketing</option>
+              <option value="Customer Service">Customer Service</option>
+              <option value="Projects">Projects</option>
+              <option value="Engineering">Engineering</option>
+              <option value="Safety and Compliance">Safety and Compliance</option>
+              <option value="Legal">Legal</option>
+              <option value="Procurement">Procurement</option>
+              <option value="Logistics">Logistics</option>
+              <option value="Sales">Sales</option>
+              <option value="Technical Services">Technical Services</option>
+              <option value="Network Maintenance">Network Maintenance</option>
+              <option value="Strategy & Planning">Strategy & Planning</option>
             </select>
           </div>
 

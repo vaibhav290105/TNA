@@ -6,7 +6,26 @@ const UserSchema = new mongoose.Schema({
   password: String,
   role: { type: String, enum: ['employee', 'manager', 'hod', 'hr', 'admin'], default: 'employee' },
 
-  department: { type: String, enum: ['HR', 'Finance', 'IT', 'Operations'] },
+  department: {
+  type: String,
+  enum: [
+    'Finance',
+    'IT',
+    'Operations',
+    'Marketing',
+    'Customer Service',
+    'Projects',
+    'Engineering',
+    'Safety and Compliance',
+    'Legal',
+    'Procurement',
+    'Logistics',
+    'Sales',
+    'Technical Services',
+    'Network Maintenance',
+    'Strategy & Planning'
+  ]
+},
   location: { type: String },
 
   
