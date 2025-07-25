@@ -42,9 +42,6 @@ function App() {
         <Route path="/training-form/:id" element={<Trainingformupdate />} />
         <Route path="/feedback" element={<FeedbackList />} />
         <Route path="/my-feedback-responses" element={<MyFeedbackResponses />} />
-        
-
-
       </Routes>
     </BrowserRouter>
   );

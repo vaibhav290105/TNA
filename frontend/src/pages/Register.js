@@ -7,6 +7,7 @@ export default function Register() {
     name: '',
     email: '',
     password: '',
+    confirmPassword: '',
     role: 'employee',
     department: '',
     location: ''
@@ -14,6 +15,7 @@ export default function Register() {
 
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState(null);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -26,23 +28,47 @@ export default function Register() {
     setPreview(URL.createObjectURL(file));
   };
 
-  const register = async (e) => {
-    e.preventDefault();
-    try {
-      const data = new FormData();
-      Object.entries(formData).forEach(([key, value]) => data.append(key, value));
-      if (image) data.append('image', image);
+  const validatePassword = (password) => {
+  const lengthCheck = password.length >= 8;
+  const numberCheck = /\d/.test(password);
+  const uppercaseCheck = /[A-Z]/.test(password);
+  const specialCharCheck = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+  return lengthCheck && numberCheck && uppercaseCheck && specialCharCheck;
+};
 
-      await API.post('/auth/register', data, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+const register = async (e) => {
+  e.preventDefault();
 
-      alert('User registered successfully');
-      navigate('/');
-    } catch (err) {
-      alert(err.response?.data?.msg || 'Registration failed');
-    }
-  };
+  // Check confirm password match
+  if (formData.password !== formData.confirmPassword) {
+    setError('❌ Passwords do not match!');
+    return;
+  }
+
+  // Check password strength
+  if (!validatePassword(formData.password)) {
+    setError('❌ Password must be at least 8 characters long, contain one uppercase letter, one number, and one special character.');
+    return;
+  }
+
+  try {
+    const data = new FormData();
+    Object.entries(formData).forEach(([key, value]) => {
+      if (key !== 'confirmPassword') data.append(key, value); // Skip confirmPassword
+    });
+    if (image) data.append('image', image);
+
+    await API.post('/auth/register', data, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+
+    alert('✅ User registered successfully');
+    navigate('/');
+  } catch (err) {
+    setError(err.response?.data?.msg || '❌ Registration failed');
+  }
+};
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-200 via-purple-200 to-pink-200 flex items-center justify-center px-4">
@@ -100,6 +126,15 @@ export default function Register() {
             required
             className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-400"
           />
+          <input
+            type="password"
+            name="confirmPassword"
+            placeholder="Confirm Password"
+            value={formData.confirmPassword}
+            onChange={handleChange}
+            required
+            className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-400"
+          />
 
           <div className="grid grid-cols-2 gap-4">
             <select
@@ -151,6 +186,8 @@ export default function Register() {
             className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-400"
           />
         </div>
+
+        {error && <p className="text-red-600 text-center">{error}</p>}
 
         <button
           type="submit"
