@@ -324,6 +324,12 @@ export default function AdminPanel() {
                 Profile
               </button>
               <button
+                onClick={() => navigate("/tna-report")}
+                className="flex items-center gap-2 bg-green-50 hover:bg-green-100 text-green-700 px-4 py-2 rounded-lg font-medium transition-colors"
+              >
+                📊 TNA Report
+              </button>
+              <button
                 onClick={logout}
                 className="flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-700 px-4 py-2 rounded-lg font-medium transition-colors"
               >

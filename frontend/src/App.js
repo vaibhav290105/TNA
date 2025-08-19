@@ -17,6 +17,7 @@ import ResetPassword from './components/ResetPassword';
 import Trainingformupdate from './pages/Trainingformupdate';
 import FeedbackList from './components/FeedbackList';
 import MyFeedbackResponses from './components/MyFeedbackResponses';
+import TNAReport from './pages/TNAReport';
 
 const App = () => {
   return (
@@ -40,6 +41,7 @@ const App = () => {
           <Route path="/training-form/:id" element={<Trainingformupdate />} />
           <Route path="/feedback" element={<FeedbackList />} />
           <Route path="/my-feedback-responses" element={<MyFeedbackResponses />} />
+          <Route path="/tna-report" element={<TNAReport />} />
         </Routes>
       </div>
     </BrowserRouter>
